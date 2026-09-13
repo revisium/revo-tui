@@ -35,7 +35,8 @@
     "bun": "1.4.2",
     "mobx": "6.16.1",
     "mobx-react-lite": "4.1.1",
-    "react": "19.3.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
