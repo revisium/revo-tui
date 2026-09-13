@@ -76,6 +76,8 @@ export class AppViewModel {
   }
 
   public dispose(): void {
+    this.dialogue?.dispose()
+    this.dialogue = undefined
     this.compose.dispose()
     this.dialogues.dispose()
     this.mounted = false
