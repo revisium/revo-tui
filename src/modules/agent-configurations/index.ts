@@ -1,4 +1,5 @@
 export { GraphqlAgentConfigurationsTransport } from './transport/graphql/GraphqlAgentConfigurationsTransport.js'
+export { AgentConfigurationsService } from './AgentConfigurationsService.js'
 export type { GraphqlAgentConfigurationsOptions } from './transport/graphql/GraphqlAgentConfigurationsTransport.js'
 export type {
   AgentConfigurationsSubscriptionOptions,
@@ -17,4 +18,5 @@ export type {
   AgentDefinition,
   AgentDefinitionPage,
   AgentLaunchEvidence,
+  AgentLaunchConfiguration,
 } from './contracts/types.js'
