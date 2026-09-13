@@ -244,14 +244,14 @@ export class DialogueViewModel {
     if (this.interaction?.id === id) return
     if (this.interaction !== undefined) {
       this.interaction.dispose()
-      this.interactions.delete(this.interaction.id)
     }
     const dialogue = this.dialogue
     if (dialogue === undefined) {
       this.interaction = undefined
       return
     }
-    const interaction = new InteractionViewModel(dialogue, id)
+    const interaction =
+      this.interactions.get(id) ?? new InteractionViewModel(dialogue, id)
     interaction.mount()
     this.interactions.set(id, interaction)
     this.interaction = interaction

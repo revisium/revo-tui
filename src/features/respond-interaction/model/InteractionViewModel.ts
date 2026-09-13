@@ -121,12 +121,13 @@ export class InteractionViewModel {
       await this.perform((session) => session.choose(option.value))
   }
   public async submit(): Promise<void> {
+    if (!this.canRespond) return
     const definition = this.definition
     if (definition?.kind !== 'input') {
       this.validationError = 'Interaction input is unavailable.'
       return
     }
-    const values: Record<string, JsonValue> = {}
+    const entries: [string, JsonValue][] = []
     for (const [index, question] of definition.questions.entries()) {
       const model = this.questions.get(question.id)
       const error = model?.error ?? 'Question is unavailable.'
@@ -136,11 +137,11 @@ export class InteractionViewModel {
         return
       }
       const value = model?.value
-      if (value !== undefined) values[question.id] = value
+      if (value !== undefined) entries.push([question.id, value])
     }
     this.validationError = ''
     await this.perform((session) =>
-      session.submit(values as DialogueInputValues),
+      session.submit(Object.fromEntries(entries) as DialogueInputValues),
     )
   }
   public async decline(): Promise<void> {
