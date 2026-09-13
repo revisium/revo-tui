@@ -114,18 +114,22 @@ export class DialogueCommands {
     if (this.lifecycle === 'closed') return Promise.resolve()
     this.generation += 1
     this.lifecycle = 'disposing'
-    this.abortDeliveries()
+    const deliveries = this.abortDeliveries()
     this.pendingCommands = []
     this.errorMessage = ''
-    const disposal = this.close(this.starting)
+    const disposal = this.close(this.starting, deliveries)
     this.disposal = disposal
     disposal.catch(() => undefined)
     return disposal
   }
 
-  private async close(starting: Promise<void> | undefined): Promise<void> {
+  private async close(
+    starting: Promise<void> | undefined,
+    deliveries: readonly Promise<unknown>[],
+  ): Promise<void> {
     try {
       await starting?.catch(() => undefined)
+      await Promise.allSettled(deliveries)
       await this.ownedStorage.close()
     } finally {
       this.lifecycle = 'closed'
@@ -385,13 +389,18 @@ export class DialogueCommands {
     )
   }
 
-  private abortDeliveries(): void {
+  private abortDeliveries(): readonly Promise<unknown>[] {
+    const promises = [
+      ...[...this.messageDeliveries.values()].map(({ promise }) => promise),
+      ...[...this.responseDeliveries.values()].map(({ promise }) => promise),
+    ]
     for (const delivery of this.messageDeliveries.values())
       delivery.controller.abort()
     for (const delivery of this.responseDeliveries.values())
       delivery.controller.abort()
     this.messageDeliveries.clear()
     this.responseDeliveries.clear()
+    return promises
   }
 
   private isCurrent(

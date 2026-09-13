@@ -1,11 +1,12 @@
 import { createApplication } from './providers/createApplication.js'
 
 const apiUrl = requiredEnvironment('REVO_TUI_API_URL')
-requiredEnvironment('REVO_TUI_DATA_DIR')
+const dataDir = requiredEnvironment('REVO_TUI_DATA_DIR')
 
 const application = createApplication({
   apiUrl,
   clientName: 'Revo terminal client',
+  dataDir,
 })
 
 try {
