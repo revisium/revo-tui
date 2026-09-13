@@ -54,3 +54,26 @@ export interface DialogueChange {
   readonly item?: DialogueItem | null
   readonly summary?: DialogueSummary | null
 }
+
+export interface DialogueTurn {
+  readonly id: string
+  readonly dialogueId: string
+  readonly commandId: string
+  readonly userItemId: string
+  readonly status: string
+  readonly dispatchState: string
+  readonly cancelRequested: boolean
+  readonly completedAt?: string | null
+  readonly endItemSequence?: string | null
+  readonly outcome?: JsonValue
+}
+
+export interface DialogueInteraction {
+  readonly id: string
+  readonly dialogueId: string
+  readonly turnId?: string | null
+  readonly status: string
+  readonly request: JsonValue
+  readonly response?: JsonValue
+  readonly responseCommandId?: string | null
+}

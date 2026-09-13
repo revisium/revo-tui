@@ -27,7 +27,7 @@
     "fsd:check": "steiger src",
     "verify:sources": "if [ -d src ]; then pnpm typecheck && pnpm fsd:check && pnpm build; else echo 'Source gates: N/A (src directory is not present)'; fi",
     "gql:codegen": "graphql-codegen --config codegen.ts",
-    "gql:codegen:check": "pnpm gql:codegen && git diff --exit-code -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ && codegen_untracked=\"$(git ls-files --others --exclude-standard -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__)\" && test -z \"$codegen_untracked\"",
+    "gql:codegen:check": "pnpm gql:codegen && git diff --exit-code -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ src/modules/dialogue-engine/transport/graphql/__generated__ && codegen_untracked=\"$(git ls-files --others --exclude-standard -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ src/modules/dialogue-engine/transport/graphql/__generated__)\" && test -z \"$codegen_untracked\"",
     "verify": "pnpm gql:codegen:check && pnpm format:check && pnpm lint && pnpm verify:sources",
     "sonar:issues:local": "bash scripts/sonar-issues-local.sh"
   },

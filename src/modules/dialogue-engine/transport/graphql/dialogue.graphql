@@ -1,0 +1,133 @@
+fragment DialogueSummaryFields on DialogueSummaryModel {
+  id
+  title
+  agentId
+  agentVersion
+  agentInstallationId
+  agentConfiguration
+  status
+  progress
+  pendingCount
+  lastOutcome
+  activeTurnId
+  createdAt
+  updatedAt
+  version
+  significantSequence
+  readSignificantSequence
+  unreadCount
+  contextMode
+  originDialogueId
+  originTurnId
+}
+
+fragment DialogueItemFields on DialogueHistoryItemModel {
+  id
+  dialogueId
+  sequence
+  turnId
+  kind
+  source
+  text
+  payload
+  status
+  version
+  createdAt
+  historical
+}
+
+fragment DialogueTurnFields on DialogueTurnModel {
+  id
+  dialogueId
+  commandId
+  userItemId
+  status
+  dispatchState
+  cancelRequested
+  completedAt
+  endItemSequence
+  outcome
+}
+
+query DialogueList($first: Int!, $after: String) {
+  dialogues(first: $first, after: $after) {
+    edges {
+      node {
+        ...DialogueSummaryFields
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    snapshotCursor
+    totalCount
+  }
+}
+
+query DialogueDetails($id: ID!) {
+  dialogue(dialogueId: $id) {
+    ...DialogueSummaryFields
+  }
+}
+
+query DialogueHistory($id: ID!, $first: Int!, $after: String) {
+  dialogueHistory(dialogueId: $id, first: $first, after: $after) {
+    edges {
+      node {
+        ...DialogueItemFields
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    snapshotCursor
+    totalCount
+    observedSignificantSequence
+  }
+}
+
+query DialogueItem($id: ID!, $itemId: ID!) {
+  dialogueHistoryItem(dialogueId: $id, itemId: $itemId) {
+    ...DialogueItemFields
+  }
+}
+
+query DialogueTurns($id: ID!, $first: Int!, $after: String) {
+  dialogueTurns(dialogueId: $id, first: $first, after: $after) {
+    edges {
+      node {
+        ...DialogueTurnFields
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    snapshotCursor
+    totalCount
+  }
+}
+
+query DialogueInteractions($id: ID!, $first: Int!, $after: String) {
+  dialogueInteractions(dialogueId: $id, first: $first, after: $after) {
+    edges {
+      node {
+        id
+        dialogueId
+        turnId
+        status
+        request
+        response
+        responseCommandId
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    snapshotCursor
+    totalCount
+  }
+}
