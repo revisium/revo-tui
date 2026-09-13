@@ -7,6 +7,7 @@ import {
 import { createRoot, type Root } from '@opentui/react'
 import { createElement } from 'react'
 import { App } from '../App.js'
+import { ApplicationErrorBoundary } from '../ApplicationErrorBoundary.js'
 import type { AppViewModel } from '../model/AppViewModel.js'
 
 const EXIT_SUCCESS = 0
@@ -31,6 +32,8 @@ export class ApplicationLifecycle {
   #root: Root | undefined
   #resolve: ((code: number) => void) | undefined
   #reject: ((error: unknown) => void) | undefined
+  #startup: Promise<void> | undefined
+  #rendererDestroyed = false
   #closing = false
   #started = false
 
@@ -53,7 +56,8 @@ export class ApplicationLifecycle {
       this.#reject = reject
     })
     this.bindSignals()
-    this.startRenderer().catch(this.onStartupError)
+    this.#startup = this.startRenderer()
+    this.#startup.catch(this.onStartupError)
     return completion
   }
 
@@ -78,11 +82,18 @@ export class ApplicationLifecycle {
 
     const root = this.#createRoot(renderer)
     this.#root = root
-    root.render(createElement(App, { createModel: this.#createViewModel }))
+    const app = createElement(App, { createModel: this.#createViewModel })
+    const boundary = createElement(
+      ApplicationErrorBoundary,
+      { onError: this.onReactError },
+      app,
+    )
+    root.render(boundary)
   }
 
   private bindRenderer(renderer: CliRenderer): void {
     renderer.on(CliRenderEvents.RENDER_ERROR, this.onRenderError)
+    renderer.on(CliRenderEvents.DESTROY, this.onRendererDestroy)
   }
 
   private bindSignals(): void {
@@ -101,6 +112,15 @@ export class ApplicationLifecycle {
     this.fail(error)
   }
 
+  private readonly onReactError = (): void => {
+    this.fail(new Error('The Revo TUI interface failed to render.'))
+  }
+
+  private readonly onRendererDestroy = (): void => {
+    this.#rendererDestroyed = true
+    this.close(EXIT_SUCCESS)
+  }
+
   private onSignal(): void {
     this.quit()
   }
@@ -115,8 +135,21 @@ export class ApplicationLifecycle {
     }
 
     this.#closing = true
+    this.unbindSignals()
+    this.finishClose(code, error)
+  }
+
+  private async finishClose(code?: number, error?: unknown): Promise<void> {
+    let startupError: unknown
+
+    try {
+      await this.#startup
+    } catch (caughtError) {
+      startupError = caughtError
+    }
+
     const cleanupError = this.releaseResources()
-    const finalError = error ?? cleanupError
+    const finalError = error ?? startupError ?? cleanupError
 
     if (finalError !== undefined) {
       this.#reject?.(finalError)
@@ -126,9 +159,9 @@ export class ApplicationLifecycle {
   }
 
   private releaseResources(): unknown {
-    this.unbindSignals()
     const renderer = this.#renderer
     renderer?.off(CliRenderEvents.RENDER_ERROR, this.onRenderError)
+    renderer?.off(CliRenderEvents.DESTROY, this.onRendererDestroy)
 
     let cleanupError: unknown
 
@@ -139,7 +172,9 @@ export class ApplicationLifecycle {
     }
 
     try {
-      renderer?.destroy()
+      if (!this.#rendererDestroyed) {
+        renderer?.destroy()
+      }
     } catch (error) {
       cleanupError ??= error
     }

@@ -11,7 +11,12 @@ export function useViewModel<T extends ViewModelLifecycle>(
   const [model] = useState(createModel)
 
   useEffect(() => {
-    model.mount?.()
+    try {
+      model.mount?.()
+    } catch (error) {
+      model.dispose?.()
+      throw error
+    }
 
     return () => model.dispose?.()
   }, [model])
