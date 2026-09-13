@@ -21,6 +21,13 @@ export class SubscriptionError extends Error {
   }
 }
 
+export class SubscriptionOverflowError extends SubscriptionError {
+  public constructor() {
+    super('protocol', 'The subscription consumer fell behind.')
+    this.name = 'SubscriptionOverflowError'
+  }
+}
+
 export function connectionError(error: unknown): SubscriptionError {
   if (error instanceof SubscriptionError) {
     return error

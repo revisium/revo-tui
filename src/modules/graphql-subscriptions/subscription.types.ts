@@ -19,4 +19,33 @@ export interface SubscriptionOperation {
   dispose(): void
 }
 
+export type SubscriptionStatus =
+  | 'Connecting'
+  | 'Live'
+  | 'Reconnecting'
+  | 'Offline'
+  | 'Stopped'
+
+export interface SubscriptionState {
+  readonly status: SubscriptionStatus
+  readonly error: string
+}
+
+export interface SubscriptionOptions<T, V extends SubscriptionVariables> {
+  readonly signal: AbortSignal
+  readonly prepare: (signal: AbortSignal) => V | Promise<V>
+  readonly next: (data: T, signal: AbortSignal) => void | Promise<void>
+  readonly changed?: (state: SubscriptionState) => void
+}
+
+export interface SubscriptionLease {
+  readonly done: Promise<void>
+  dispose(): void
+}
+
+export type GraphqlSubscriptionsOptions = Omit<
+  SseConnectionOptions,
+  'onConnected' | 'onTerminalError'
+>
+
 import type { SubscriptionError } from './SubscriptionError.js'
