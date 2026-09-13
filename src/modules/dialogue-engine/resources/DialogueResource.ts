@@ -1,0 +1,98 @@
+import { makeAutoObservable, runInAction } from 'mobx'
+import {
+  ObservableRequest,
+  errorMessageOf,
+} from '../../observable-request/index.js'
+import type { DialogueReadBackend } from '../contracts/backend.types.js'
+import type { DialogueView } from '../contracts/public.types.js'
+import { DialogueError } from '../errors/DialogueError.js'
+import type { DialogueStore } from '../state/DialogueStore.js'
+import { DialogueHistory } from './DialogueHistory.js'
+
+export class DialogueResource {
+  public readonly history: DialogueHistory
+  private readonly request: ObservableRequest<void, [number]>
+  private generation = 0
+  private detailsReady = false
+
+  public constructor(
+    public readonly id: string,
+    private readonly backend: DialogueReadBackend,
+    private readonly store: DialogueStore,
+  ) {
+    this.history = new DialogueHistory(id, backend, store)
+    this.request = ObservableRequest.of(
+      ({ signal }, generation) => this.fetchDetails(generation, signal),
+      { skipResetting: true },
+    )
+    makeAutoObservable<this, 'backend' | 'history' | 'request' | 'store'>(
+      this,
+      {
+        backend: false,
+        history: false,
+        request: false,
+        store: false,
+      },
+      { autoBind: true },
+    )
+  }
+
+  public get snapshot(): DialogueView | undefined {
+    return this.store.model(this.id)?.view
+  }
+
+  public get ready(): boolean {
+    return this.detailsReady && this.history.ready
+  }
+
+  public get loading(): boolean {
+    return this.request.isLoading || this.history.loading
+  }
+
+  public get error(): string {
+    const error = this.request.error
+    if (error instanceof DialogueError) return error.message
+    if (error != null) return errorMessageOf(error)
+    return this.history.error
+  }
+
+  public start(): Promise<void> {
+    return this.refresh()
+  }
+
+  public async refresh(): Promise<void> {
+    const generation = this.generation + 1
+    this.generation = generation
+    this.history.dispose()
+    const details = await this.request.fetch(generation)
+    if (!details.isRight) throw details.error
+    if (generation !== this.generation) return
+    await this.history.refresh()
+  }
+
+  public dispose(): void {
+    this.generation += 1
+    this.request.abort()
+    this.history.dispose()
+    this.detailsReady = false
+  }
+
+  private async fetchDetails(
+    generation: number,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const summary = await this.backend.details(this.id, signal)
+    if (signal.aborted || generation !== this.generation) return
+    if (summary.id !== this.id) {
+      throw new DialogueError(
+        'identity-mismatch',
+        'Dialogue details belong to a different dialogue.',
+        'refresh',
+      )
+    }
+    runInAction(() => {
+      this.store.include(summary)
+      this.detailsReady = true
+    })
+  }
+}

@@ -2,7 +2,7 @@ import { makeAutoObservable, observable } from 'mobx'
 import type { DialogueSummary } from '../contracts/dialogue.types.js'
 import type { DialogueView } from '../contracts/public.types.js'
 import { DialogueError } from '../errors/DialogueError.js'
-import { DialogueModel } from './DialogueModel.js'
+import { DialogueModel, validateSummary } from './DialogueModel.js'
 
 export class DialogueStore {
   private readonly dialogues = observable.map<string, DialogueModel>()
@@ -37,6 +37,20 @@ export class DialogueStore {
     }
     if (!this.listIds.includes(summary.id)) this.listIds.push(summary.id)
     return { model, changed }
+  }
+
+  public includeAll(summaries: readonly DialogueSummary[]): void {
+    for (const summary of summaries) validateSummary(summary)
+    for (const summary of summaries) this.include(summary)
+  }
+
+  public views(ids: readonly string[]): readonly DialogueView[] {
+    return Object.freeze(
+      ids.flatMap((id) => {
+        const model = this.dialogues.get(id)
+        return model === undefined ? [] : [model.view]
+      }),
+    )
   }
 
   public require(id: string): DialogueModel {
