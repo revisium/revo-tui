@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "noEmit": false,
+    "outDir": "dist/launcher",
+    "rootDir": "src/launcher",
+    "types": ["node"]
+  },
+  "include": ["src/launcher/**/*.ts"]
+}
