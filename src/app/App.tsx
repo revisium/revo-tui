@@ -40,10 +40,8 @@ export const App = observer(function App({ createModel }: AppProps) {
           {viewModel.compose.error ? (
             <text fg="#ff7777">{viewModel.compose.error}</text>
           ) : null}
-          {viewModel.compose.pendingCommandId || viewModel.compose.uncertain ? (
-            <text>
-              Delivery uncertain. Press y to retry exact prompt, x to reset.
-            </text>
+          {viewModel.compose.statusMessage ? (
+            <text>{viewModel.compose.statusMessage}</text>
           ) : null}
         </box>
       )}

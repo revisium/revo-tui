@@ -26,7 +26,8 @@ export class AppViewModel {
   public mounted = false
   public route: 'list' | 'compose' = 'list'
   public readonly dialogues: DialogueListViewModel
-  public readonly compose: ComposeViewModel
+  public compose: ComposeViewModel
+  readonly #dependencies: AppViewModelDependencies
 
   readonly #options: AppViewModelOptions
   readonly #requestExit: () => void
@@ -36,19 +37,11 @@ export class AppViewModel {
     requestExit: () => void,
   ) {
     this.#options = options
+    this.#dependencies = options
     this.#requestExit = requestExit
     const engine = options.engine
     this.dialogues = new DialogueListViewModel(engine)
-    this.compose = new ComposeViewModel(
-      options.agentConfigurations,
-      options.actions,
-      options.commands,
-      (id) => {
-        this.dialogues.selectedId = id
-        this.compose.dispose()
-        this.route = 'list'
-      },
-    )
+    this.compose = this.createCompose()
     makeAutoObservable(this)
   }
 
@@ -87,6 +80,10 @@ export class AppViewModel {
   }
 
   public handleKey(name: string, ctrl: boolean): void {
+    if (name === 'q' || (ctrl && name === 'c')) {
+      this.#requestExit()
+      return
+    }
     if (this.route === 'compose' && this.handleComposeKey(name)) return
     if (this.route === 'list' && this.handleListKey(name)) return
     if (name === '?' || name === 'h') {
@@ -94,20 +91,21 @@ export class AppViewModel {
       return
     }
 
-    if (name === 'q' || name === 'escape' || (ctrl && name === 'c')) {
+    if (name === 'escape') {
       this.#requestExit()
     }
   }
 
   private handleComposeKey(name: string): boolean {
     if (name === 'escape') {
+      if (!this.compose.canLeave) return true
       this.compose.dispose()
       this.route = 'list'
       return true
     }
     if (name === 'enter') {
       if (this.compose.focus === 'prompt') return true
-      this.compose.submit().catch(this.showError)
+      this.compose.submit().catch(() => undefined)
       return true
     }
     if (name === 'tab') {
@@ -126,8 +124,12 @@ export class AppViewModel {
       this.compose.handleControlKey(name)
       return true
     }
-    if (this.compose.focus === 'controls' && name === 'y') {
-      this.compose.retrySend().catch(this.showError)
+    if (
+      this.compose.focus === 'controls' &&
+      name === 'y' &&
+      this.compose.canRetrySend
+    ) {
+      this.compose.retrySend().catch(() => undefined)
       return true
     }
     if (this.compose.focus === 'controls' && name === 'x') {
@@ -139,7 +141,8 @@ export class AppViewModel {
 
   private handleListKey(name: string): boolean {
     if (name === 'n') {
-      this.compose.reset()
+      this.compose.dispose()
+      this.compose = this.createCompose()
       this.compose.mount()
       this.route = 'compose'
       return true
@@ -153,19 +156,28 @@ export class AppViewModel {
       return true
     }
     if (name === 'r') {
-      this.dialogues.refresh().catch(this.showError)
+      this.dialogues.refresh().catch(() => undefined)
       return true
     }
     if (name === 'm') {
-      this.dialogues.loadMore().catch(this.showError)
+      this.dialogues.loadMore().catch(() => undefined)
       return true
     }
     return false
   }
 
-  private showError = (error: unknown): void => {
-    if (this.route === 'compose')
-      this.compose.error =
-        error instanceof Error ? error.message : 'Request failed.'
+  private createCompose(): ComposeViewModel {
+    const model = new ComposeViewModel(
+      this.#dependencies.agentConfigurations,
+      this.#dependencies.actions,
+      this.#dependencies.commands,
+      (id) => {
+        if (this.compose !== model) return
+        this.dialogues.selectedId = id
+        model.dispose()
+        this.route = 'list'
+      },
+    )
+    return model
   }
 }
