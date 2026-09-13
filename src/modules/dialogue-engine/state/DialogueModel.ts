@@ -10,8 +10,7 @@ import type {
 import { DialogueError } from '../errors/DialogueError.js'
 import { readonlyValue } from '../resources/readonly-value.js'
 import { compareSequence, sequenceValue } from './sequence.js'
-import { DialogueItemModel } from './DialogueItemModel.js'
-import { validateItem } from './DialogueItemModel.js'
+import { DialogueItemModel, validateItem } from './DialogueItemModel.js'
 
 export class DialogueModel {
   private summary: DialogueSummaryView
