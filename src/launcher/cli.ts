@@ -128,7 +128,7 @@ function packageVersion(): string {
   const manifest = readPackageManifest()
 
   if (typeof manifest.version !== 'string') {
-    throw new Error('Package metadata does not contain a version.')
+    throw new TypeError('Package metadata does not contain a version.')
   }
 
   return manifest.version
