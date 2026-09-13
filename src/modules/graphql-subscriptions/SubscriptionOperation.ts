@@ -36,6 +36,10 @@ export class SubscriptionOperation<
     document: DocumentNode,
     private readonly options: SubscriptionOptions<T, V>,
     private readonly release: () => void,
+    private readonly transportErrorHandler: (
+      connectionGeneration: number,
+      error: SubscriptionError,
+    ) => void,
   ) {
     this.query = print(document)
     this.done = new Promise((resolve, reject) => {
@@ -58,7 +62,7 @@ export class SubscriptionOperation<
     }
   }
 
-  public start(connection: SseConnection): void {
+  public start(connection: SseConnection, connectionGeneration: number): void {
     const previousWork = this.suspendGeneration()
     const generation = this.generation
     const signal = this.controller.signal
@@ -71,7 +75,10 @@ export class SubscriptionOperation<
 
         this.transport = connection.subscribe<T>(this.query, variables, {
           next: (data) => this.receive(generation, data),
-          error: (error) => queueMicrotask(() => this.requestFinish(error)),
+          error: (error) =>
+            queueMicrotask(() =>
+              this.transportError(generation, connectionGeneration, error),
+            ),
           complete: () => this.serverComplete(generation),
         })
       })
@@ -108,6 +115,11 @@ export class SubscriptionOperation<
 
   public fail(error: SubscriptionError): void {
     this.requestFinish(error)
+  }
+
+  public pause(): void {
+    if (this.finished) return
+    this.work = this.suspendGeneration().catch(() => undefined)
   }
 
   private receive(generation: number, data: T): void {
@@ -159,6 +171,22 @@ export class SubscriptionOperation<
 
     if (!this.processing && this.queue.length === 0) {
       this.requestFinish()
+    }
+  }
+
+  private transportError(
+    generation: number,
+    connectionGeneration: number,
+    error: SubscriptionError,
+  ): void {
+    if (!this.isActive(generation)) return
+
+    if (error.code === 'network' || error.code === 'timeout') {
+      this.transportErrorHandler(connectionGeneration, error)
+    } else if (error.code === 'access-denied') {
+      this.transportErrorHandler(connectionGeneration, error)
+    } else {
+      this.requestFinish(error)
     }
   }
 

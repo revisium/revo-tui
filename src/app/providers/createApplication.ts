@@ -1,4 +1,5 @@
 import { DIContainer } from '../../shared/lib/index.js'
+import { GraphqlSubscriptions } from '../../modules/graphql-subscriptions/index.js'
 import {
   AppViewModel,
   type AppViewModelOptions,
@@ -14,13 +15,25 @@ export function createApplication(
   const container = new DIContainer()
 
   container.register(
-    ApplicationLifecycle,
+    GraphqlSubscriptions,
     () =>
-      new ApplicationLifecycle({
+      new GraphqlSubscriptions({
+        endpoint: subscriptionEndpoint(options.apiUrl),
+      }),
+    'singleton',
+  )
+  container.register(
+    ApplicationLifecycle,
+    () => {
+      const subscriptions = container.get(GraphqlSubscriptions)
+      const disposeServices = (): void => subscriptions.dispose()
+      return new ApplicationLifecycle({
         createViewModel: () => container.get(AppViewModel),
         createRenderer: applicationFactories.createRenderer,
         createRoot: applicationFactories.createRoot,
-      }),
+        disposeServices,
+      })
+    },
     'singleton',
   )
   container.register(
@@ -34,4 +47,14 @@ export function createApplication(
   )
 
   return container.get(ApplicationLifecycle)
+}
+
+function subscriptionEndpoint(apiUrl: string): string {
+  const endpoint = new URL(apiUrl)
+  endpoint.username = ''
+  endpoint.password = ''
+  endpoint.search = ''
+  endpoint.hash = ''
+  endpoint.pathname = `${endpoint.pathname.replace(/\/$/, '')}/graphql/stream`
+  return endpoint.toString()
 }

@@ -21,12 +21,14 @@ export interface ApplicationLifecycleOptions {
   readonly createViewModel: () => AppViewModel
   readonly createRenderer: RendererFactory
   readonly createRoot: RootFactory
+  readonly disposeServices: () => void
 }
 
 export class ApplicationLifecycle {
   readonly #createViewModel: () => AppViewModel
   readonly #createRenderer: RendererFactory
   readonly #createRoot: RootFactory
+  readonly #disposeServices: () => void
   readonly #signalHandlers = new Map<AppSignal, () => void>()
   #renderer: CliRenderer | undefined
   #root: Root | undefined
@@ -34,6 +36,7 @@ export class ApplicationLifecycle {
   #reject: ((error: unknown) => void) | undefined
   #startup: Promise<void> | undefined
   #rendererDestroyed = false
+  #servicesDisposed = false
   #closing = false
   #started = false
 
@@ -41,6 +44,7 @@ export class ApplicationLifecycle {
     this.#createViewModel = options.createViewModel
     this.#createRenderer = options.createRenderer
     this.#createRoot = options.createRoot
+    this.#disposeServices = options.disposeServices
   }
 
   public run(): Promise<number> {
@@ -169,6 +173,15 @@ export class ApplicationLifecycle {
       this.#root?.unmount()
     } catch (error) {
       cleanupError = error
+    }
+
+    try {
+      if (!this.#servicesDisposed) {
+        this.#servicesDisposed = true
+        this.#disposeServices()
+      }
+    } catch (error) {
+      cleanupError ??= error
     }
 
     try {
