@@ -7,6 +7,7 @@ import type {
   DialogueInputValues,
   DialogueInteractionDefinition,
 } from './interaction.types.js'
+import type { SubscriptionState } from '../../graphql-subscriptions/index.js'
 
 export interface DialogueItemView {
   readonly id: string
@@ -68,6 +69,7 @@ export interface DialogueResourceView {
   readonly ready: boolean
   readonly loading: boolean
   readonly error: string
+  readonly connection: SubscriptionState
   readonly history: DialogueHistoryResourceView
   readonly turns: readonly DialogueTurn[]
   readonly interactions: readonly DialogueInteraction[]
@@ -103,6 +105,7 @@ export interface DialogueListView {
   readonly hasMore: boolean
   readonly loading: boolean
   readonly error: string
+  readonly connection: SubscriptionState
   refresh(): Promise<void>
   loadMore(): Promise<void>
 }
