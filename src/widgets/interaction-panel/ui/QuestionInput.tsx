@@ -21,6 +21,7 @@ export const QuestionInput = observer(function QuestionInput({
   if (question.input === 'text' && question.multiline) {
     answerInput = (
       <textarea
+        key={question.id}
         ref={textareaRef}
         focused={focused && !model.customOtherActive}
         initialValue={model.draft}
@@ -61,14 +62,16 @@ export const QuestionInput = observer(function QuestionInput({
             </text>
           ))
         : null}
-      {model.customValues.map((value) => (
-        <text key={value} fg="#77bdfb">
-          {'  '}
-          Other: {value} ✓
-        </text>
-      ))}
+      {question.input === 'select'
+        ? model.customValues.map((value) => (
+            <text key={value} fg="#77bdfb">
+              {'  '}
+              Other: {value} ✓
+            </text>
+          ))
+        : null}
       {answerInput}
-      {question.allowOther ? (
+      {question.input === 'select' && question.allowOther ? (
         <input
           focused={focused && model.customOtherActive}
           value={model.otherDraft}
@@ -88,7 +91,8 @@ function constraintSummary(question: DialogueQuestion): string {
     constraints.push(...numberConstraints(question))
   if (question.input === 'select')
     constraints.push(question.multiple ? 'select one or more' : 'select one')
-  if (question.allowOther) constraints.push('custom values allowed')
+  if (question.input === 'select' && question.allowOther)
+    constraints.push('custom values allowed')
   return constraints.join(' · ')
 }
 

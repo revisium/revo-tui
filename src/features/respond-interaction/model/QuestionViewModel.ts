@@ -123,7 +123,9 @@ export class QuestionViewModel {
   }
 
   public activateOther(): void {
-    if (this.question?.allowOther === true) this.otherActive = true
+    const question = this.question
+    if (question?.input === 'select' && question.allowOther)
+      this.otherActive = true
   }
 
   public cancelOther(): void {
@@ -132,7 +134,12 @@ export class QuestionViewModel {
 
   public addOther(): void {
     const question = this.question
-    if (question?.allowOther !== true || this.otherDraft.trim() === '') return
+    if (
+      question?.input !== 'select' ||
+      !question.allowOther ||
+      this.otherDraft.trim() === ''
+    )
+      return
     if (!question.multiple) {
       this.selected.clear()
       this.custom.clear()
