@@ -103,17 +103,22 @@ function normalizeApiUrl(value: string): string {
     throw invalidApiUrl()
   }
 
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+  if (
+    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+    url.username !== '' ||
+    url.password !== ''
+  ) {
     throw invalidApiUrl()
   }
 
+  url.hash = ''
   return url.toString()
 }
 
 function invalidApiUrl(): RevoTuiLaunchError {
   return new RevoTuiLaunchError(
     'invalid-api-url',
-    'API URL must be an absolute HTTP or HTTPS URL.',
+    'API URL must be absolute HTTP or HTTPS without embedded credentials.',
   )
 }
 

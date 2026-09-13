@@ -345,16 +345,21 @@ function validateEndpoint(endpoint: string): string {
     throw invalidEndpoint()
   }
 
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+  if (
+    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+    url.username !== '' ||
+    url.password !== ''
+  ) {
     throw invalidEndpoint()
   }
 
+  url.hash = ''
   return url.toString()
 }
 
 function invalidEndpoint(): TypeError {
   return new TypeError(
-    'Subscription endpoint must be an absolute HTTP or HTTPS URL.',
+    'Subscription endpoint must be absolute HTTP or HTTPS without embedded credentials.',
   )
 }
 
