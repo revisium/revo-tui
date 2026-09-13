@@ -11,6 +11,7 @@ import { DialogueError } from '../errors/DialogueError.js'
 import { readonlyValue } from '../resources/readonly-value.js'
 import { compareSequence, sequenceValue } from './sequence.js'
 import { DialogueItemModel } from './DialogueItemModel.js'
+import { validateItem } from './DialogueItemModel.js'
 
 export class DialogueModel {
   private summary: DialogueSummaryView
@@ -61,6 +62,34 @@ export class DialogueModel {
     if (current !== undefined) return current.upsert(item)
     this.items.set(item.id, new DialogueItemModel(item))
     return true
+  }
+
+  public applyItems(items: readonly DialogueItem[]): boolean {
+    this.validateItems(items)
+    let changed = false
+    for (const item of items) changed = this.applyItem(item) || changed
+    return changed
+  }
+
+  public validateItems(items: readonly DialogueItem[]): void {
+    const sequenceOwners = new Map<string, string>()
+    const itemSequences = new Map<string, string>()
+    for (const item of items) {
+      validateItem(item)
+      this.validateItemIdentity(item)
+      const owner = sequenceOwners.get(item.sequence)
+      if (owner !== undefined && owner !== item.id) {
+        throw identityMismatch(
+          'Dialogue item sequence belongs to a different item.',
+        )
+      }
+      sequenceOwners.set(item.sequence, item.id)
+      const sequence = itemSequences.get(item.id)
+      if (sequence !== undefined && sequence !== item.sequence) {
+        throw identityMismatch('Dialogue item sequence cannot change.')
+      }
+      itemSequences.set(item.id, item.sequence)
+    }
   }
 
   public validateItemIdentity(item: DialogueItem): void {

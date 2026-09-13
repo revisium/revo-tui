@@ -28,6 +28,9 @@ export type {
 } from './contracts/command-storage.types.js'
 export type {
   DialogueItemView,
+  DialogueHistoryResourceView,
+  DialogueListView,
+  DialogueResourceView,
   DialogueSummaryView,
   DialogueView,
   ProjectionResult,
@@ -39,6 +42,9 @@ export type {
   DialogueRecovery,
 } from './errors/DialogueError.js'
 export { DialogueProjection } from './projection/DialogueProjection.js'
+export { DialogueHistory } from './resources/DialogueHistory.js'
+export { DialogueList } from './resources/DialogueList.js'
+export { DialogueResource } from './resources/DialogueResource.js'
 export { PersistentCommandStorage } from './storage/PersistentCommandStorage.js'
 export { DialogueStore } from './state/DialogueStore.js'
 export { GraphqlDialogueBackend } from './transport/graphql/GraphqlDialogueBackend.js'

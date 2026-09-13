@@ -43,6 +43,37 @@ export interface DialogueView {
   readonly items: readonly DialogueItemView[]
 }
 
+export interface DialogueHistoryResourceView {
+  readonly items: readonly DialogueItemView[]
+  readonly hasMore: boolean
+  readonly loading: boolean
+  readonly error: string
+  readonly observed: string | null
+  readonly ready: boolean
+  refresh(): Promise<void>
+  loadMore(): Promise<void>
+}
+
+export interface DialogueResourceView {
+  readonly id: string
+  readonly snapshot: DialogueView | undefined
+  readonly ready: boolean
+  readonly loading: boolean
+  readonly error: string
+  readonly history: DialogueHistoryResourceView
+  start(): Promise<void>
+  refresh(): Promise<void>
+}
+
+export interface DialogueListView {
+  readonly items: readonly DialogueResourceView[]
+  readonly hasMore: boolean
+  readonly loading: boolean
+  readonly error: string
+  refresh(): Promise<void>
+  loadMore(): Promise<void>
+}
+
 export type ProjectionResult =
   | {
       readonly status: 'applied' | 'ignored'
