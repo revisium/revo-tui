@@ -106,12 +106,21 @@ fi
 
 node -e '
 const payload = JSON.parse(process.argv[1]);
-const issues = payload.issues ?? [];
-if (issues.length === 0) {
+if (!Array.isArray(payload.issues)) {
+  console.error("Sonar issue response does not contain an issues array.");
+  process.exit(1);
+}
+const issues = payload.issues;
+const total = payload.total ?? payload.paging?.total;
+if (!Number.isInteger(total) || total < 0) {
+  console.error("Sonar issue response does not contain a valid total.");
+  process.exit(1);
+}
+if (total === 0 && issues.length === 0) {
   console.log("Sonar open issues: 0");
   process.exit(0);
 }
-console.error(`Sonar open issues: ${payload.total ?? issues.length}`);
+console.error(`Sonar open issues: ${total}`);
 for (const issue of issues.slice(0, 50)) {
   const component = String(issue.component ?? "").replace(/^[^:]+:/, "");
   const line = issue.line ? `:${issue.line}` : "";
