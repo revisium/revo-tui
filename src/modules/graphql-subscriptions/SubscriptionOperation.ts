@@ -28,6 +28,7 @@ export class SubscriptionOperation<
   private generation = 0
   private processing = false
   private serverCompleted = false
+  private activated = false
   private finished = false
   private released = false
 
@@ -41,10 +42,19 @@ export class SubscriptionOperation<
       this.resolveDone = resolve
       this.rejectDone = reject
     })
+  }
+
+  public activate(): void {
+    if (this.activated) return
+    this.activated = true
     this.done.catch(() => undefined)
 
-    if (!options.signal.aborted) {
-      options.signal.addEventListener('abort', this.dispose, { once: true })
+    if (this.options.signal.aborted) {
+      this.dispose()
+    } else {
+      this.options.signal.addEventListener('abort', this.dispose, {
+        once: true,
+      })
     }
   }
 

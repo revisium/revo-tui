@@ -11,6 +11,7 @@ import type {
 } from './subscription.types.js'
 
 interface ActiveOperation {
+  activate(): void
   start(connection: SseConnection): void
   change(state: SubscriptionState): void
   fail(error: SubscriptionError): void
@@ -34,6 +35,7 @@ export class GraphqlSubscriptions {
     const operation = new SubscriptionOperation(document, options, () =>
       this.release(operation),
     )
+    operation.activate()
 
     if (this.disposed || options.signal.aborted) {
       operation.dispose()
@@ -56,7 +58,7 @@ export class GraphqlSubscriptions {
     if (this.disposed) return
     this.disposed = true
 
-    for (const operation of [...this.operations]) operation.dispose()
+    for (const operation of this.operations) operation.dispose()
     this.closeConnection()
   }
 
@@ -87,7 +89,7 @@ export class GraphqlSubscriptions {
     if (generation !== this.generation) return
     this.state = { status: 'Stopped', error: error.message }
 
-    for (const operation of [...this.operations]) {
+    for (const operation of this.operations) {
       operation.change(this.state)
       operation.fail(error)
     }
