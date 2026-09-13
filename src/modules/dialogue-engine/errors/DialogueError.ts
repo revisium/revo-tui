@@ -8,6 +8,10 @@ export type DialogueErrorCode =
   | 'protocol'
   | 'rate-limited'
   | 'server'
+  | 'storage-corrupt'
+  | 'storage-locked'
+  | 'storage-unavailable'
+  | 'storage-write'
   | 'unsupported-value'
 
 export type DialogueRecovery = 'retry' | 'refresh' | 'stop'
