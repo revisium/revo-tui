@@ -1,11 +1,16 @@
 import type { DialogueListView } from '../../modules/dialogue-engine/index.js'
+import { observer } from 'mobx-react-lite'
+import type { ReactElement } from 'react'
 
 export interface DialogueListProps {
   readonly model: DialogueListView
   readonly selectedId: string | undefined
 }
 
-export function DialogueList({ model, selectedId }: DialogueListProps) {
+export const DialogueList = observer(function DialogueList({
+  model,
+  selectedId,
+}: DialogueListProps) {
   if (model.loading && model.items.length === 0)
     return <text>Loading dialogues…</text>
   if (model.error !== '' && model.items.length === 0)
@@ -32,4 +37,4 @@ export function DialogueList({ model, selectedId }: DialogueListProps) {
       {model.hasMore ? <text fg="#8a8a8a">↓ more available</text> : null}
     </box>
   )
-}
+}) as (props: DialogueListProps) => ReactElement

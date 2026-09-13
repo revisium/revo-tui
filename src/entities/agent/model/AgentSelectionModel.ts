@@ -56,6 +56,10 @@ export class AgentSelectionModel {
     }))
   }
 
+  public get selectedOptionIndex(): number {
+    return this.optionIndex
+  }
+
   public get ready(): boolean {
     return (
       this.service.readiness === 'READY' && this.selectedAgent !== undefined
@@ -133,11 +137,11 @@ export class AgentSelectionModel {
   public selectNext(delta: number): void {
     const agents = this.agents
     if (!agents.length) return
-    const index = Math.max(
-      0,
-      agents.findIndex((agent) => agent.identity === this.selectedIdentity),
+    const index = agents.findIndex(
+      (agent) => agent.identity === this.selectedIdentity,
     )
-    const next = agents[Math.min(agents.length - 1, Math.max(0, index + delta))]
+    const start = index < 0 ? -1 : index
+    const next = agents[Math.min(agents.length - 1, Math.max(0, start + delta))]
     if (next !== undefined) this.selectAgent(next.identity)
   }
 
