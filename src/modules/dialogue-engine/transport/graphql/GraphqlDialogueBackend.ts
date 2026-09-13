@@ -1,37 +1,67 @@
 import { GraphQLClient } from 'graphql-request'
 import type {
+  CreateDialogueInput,
+  ForkDialogueInput,
+  RespondDialogueInput,
+  SendDialogueInput,
+} from '../../contracts/command.types.js'
+import type {
   DialogueInteraction,
+  DialogueChange,
   DialogueItem,
   DialogueSummary,
   DialogueTurn,
   JsonValue,
 } from '../../contracts/dialogue.types.js'
 import type {
-  DialogueReadBackend,
+  DialogueBackend,
+  DialogueWatchOptions,
   HistoryPage,
 } from '../../contracts/backend.types.js'
 import type { SnapshotPage } from '../../contracts/page.types.js'
 import { DialogueError } from '../../errors/DialogueError.js'
+import {
+  GraphqlSubscriptions,
+  type SubscriptionLease,
+  type SubscriptionState,
+} from '../../../graphql-subscriptions/index.js'
 import { readonlyValue } from '../../resources/readonly-value.js'
 import {
   getSdk,
+  type DialogueChangeFieldsFragment,
+  type DialogueEventsSubscription,
+  type DialogueEventsSubscriptionVariables,
+  type DialogueInteractionFieldsFragment,
   type DialogueInteractionsQuery,
   type DialogueItemFieldsFragment,
   type DialogueSummaryFieldsFragment,
+  type DialogueSummariesSubscription,
+  type DialogueSummariesSubscriptionVariables,
   type DialogueTurnFieldsFragment,
 } from './__generated__/graphql-request.js'
-import { dialogueRequestError, protocolError } from './graphql-error.js'
+import {
+  dialogueRequestError,
+  dialogueSubscriptionError,
+  protocolError,
+} from './graphql-error.js'
+import {
+  DialogueEventsDocument,
+  DialogueSummariesDocument,
+} from './__generated__/typed-document-nodes.js'
 import { snapshotPageOf } from './page-mapping.js'
 import type { GraphqlDialogueOptions } from './transport.types.js'
 
 const PAGE_SIZE = 50
 
-export class GraphqlDialogueBackend implements DialogueReadBackend {
+export class GraphqlDialogueBackend implements DialogueBackend {
   private readonly endpoint: string
   private readonly fetchImplementation: typeof fetch
   private readonly headers: Headers
 
-  public constructor(options: GraphqlDialogueOptions) {
+  public constructor(
+    options: GraphqlDialogueOptions,
+    private readonly subscriptions: GraphqlSubscriptions,
+  ) {
     this.endpoint = validateEndpoint(options.endpoint)
     this.fetchImplementation = options.fetch ?? globalThis.fetch
     this.headers = new Headers(options.headers)
@@ -119,6 +149,143 @@ export class GraphqlDialogueBackend implements DialogueReadBackend {
     }, signal)
   }
 
+  public watch(
+    scope: string | undefined,
+    options: DialogueWatchOptions,
+  ): SubscriptionLease {
+    let disposed = false
+    const callbacks = {
+      signal: options.signal,
+      changed: (state: SubscriptionState) =>
+        options.changed?.({
+          status: state.status,
+          error:
+            state.error === ''
+              ? ''
+              : 'The dialogue subscription connection changed.',
+        }),
+      prepare: async (signal: AbortSignal) => ({
+        after: await options.prepare(signal),
+        ...(scope === undefined ? {} : { ids: [scope] }),
+      }),
+      next: async (
+        data: { readonly change: DialogueChangeFieldsFragment },
+        signal: AbortSignal,
+      ) => {
+        if (disposed || signal.aborted) return
+        await options.receive(changeOf(data.change), signal)
+      },
+    }
+    const lease =
+      scope === undefined
+        ? this.subscriptions.subscribe<
+            DialogueSummariesSubscription,
+            DialogueSummariesSubscriptionVariables
+          >(DialogueSummariesDocument, {
+            ...callbacks,
+            next: (data, signal) =>
+              callbacks.next({ change: data.dialogueSummaryChanges }, signal),
+          })
+        : this.subscriptions.subscribe<
+            DialogueEventsSubscription,
+            DialogueEventsSubscriptionVariables
+          >(DialogueEventsDocument, {
+            ...callbacks,
+            next: (data, signal) =>
+              callbacks.next({ change: data.dialogueChanges }, signal),
+          })
+    const done = lease.done.catch((error: unknown) => {
+      throw dialogueSubscriptionError(error)
+    })
+    done.catch(() => undefined)
+    return {
+      done,
+      dispose: () => {
+        if (disposed) return
+        disposed = true
+        lease.dispose()
+      },
+    }
+  }
+
+  public create(
+    input: CreateDialogueInput,
+    signal?: AbortSignal,
+  ): Promise<DialogueSummary> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).CreateDialogue({ input })
+      return decode(() => summaryOf(response.createDialogue))
+    }, signal)
+  }
+
+  public send(
+    input: SendDialogueInput,
+    signal?: AbortSignal,
+  ): Promise<DialogueTurn> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).SendDialogue({ input })
+      return decode(() => turnOf(response.sendDialogueMessage))
+    }, signal)
+  }
+
+  public respond(
+    input: RespondDialogueInput,
+    signal?: AbortSignal,
+  ): Promise<DialogueInteraction> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).RespondDialogue({ input })
+      return decode(() => interactionOf(response.respondDialogue))
+    }, signal)
+  }
+
+  public cancel(
+    dialogueId: string,
+    turnId: string,
+    signal?: AbortSignal,
+  ): Promise<DialogueTurn> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).CancelDialogue({
+        id: dialogueId,
+        turnId,
+      })
+      return decode(() => turnOf(response.cancelDialogueTurn))
+    }, signal)
+  }
+
+  public read(
+    dialogueId: string,
+    through: string,
+    signal?: AbortSignal,
+  ): Promise<DialogueSummary> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).ReadDialogue({
+        id: dialogueId,
+        through,
+      })
+      return decode(() => summaryOf(response.markDialogueRead))
+    }, signal)
+  }
+
+  public reopen(
+    dialogueId: string,
+    signal?: AbortSignal,
+  ): Promise<DialogueSummary> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).ReopenDialogue({ id: dialogueId })
+      return decode(() => summaryOf(response.reopenDialogue))
+    }, signal)
+  }
+
+  public fork(
+    input: ForkDialogueInput,
+    signal?: AbortSignal,
+  ): Promise<DialogueSummary> {
+    return this.request(async () => {
+      const response = await this.sdk(signal).ForkDialogue({ input })
+      return decode(() => summaryOf(response.forkDialogue))
+    }, signal)
+  }
+
   private sdk(signal: AbortSignal | undefined) {
     const fetchImplementation = this.fetchImplementation
     return getSdk(
@@ -168,7 +335,8 @@ function turnOf(value: DialogueTurnFieldsFragment): DialogueTurn {
 }
 
 type InteractionNode =
-  DialogueInteractionsQuery['dialogueInteractions']['edges'][number]['node']
+  | DialogueInteractionFieldsFragment
+  | DialogueInteractionsQuery['dialogueInteractions']['edges'][number]['node']
 
 function interactionOf(value: InteractionNode): DialogueInteraction {
   return {
@@ -176,6 +344,14 @@ function interactionOf(value: InteractionNode): DialogueInteraction {
     request: jsonOf(value.request),
     response: value.response === undefined ? undefined : jsonOf(value.response),
   }
+}
+
+function changeOf(value: DialogueChangeFieldsFragment): DialogueChange {
+  return decode(() => ({
+    ...value,
+    item: value.item == null ? value.item : itemOf(value.item),
+    summary: value.summary == null ? value.summary : summaryOf(value.summary),
+  }))
 }
 
 function jsonOf(value: unknown): JsonValue {

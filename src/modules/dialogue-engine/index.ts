@@ -10,8 +10,16 @@ export type {
 export type { Page, SnapshotPage } from './contracts/page.types.js'
 export type {
   DialogueReadBackend,
+  DialogueBackend,
+  DialogueWatchOptions,
   HistoryPage,
 } from './contracts/backend.types.js'
+export type {
+  CreateDialogueInput,
+  ForkDialogueInput,
+  RespondDialogueInput,
+  SendDialogueInput,
+} from './contracts/command.types.js'
 export type {
   DialogueItemView,
   DialogueSummaryView,
