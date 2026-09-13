@@ -33,7 +33,6 @@ export class ChangeFeed {
       resolve = accept
       reject = decline
     })
-    this.ready.catch(() => undefined)
     this.readyResolve = resolve
     this.readyReject = reject
     makeAutoObservable<
@@ -51,6 +50,7 @@ export class ChangeFeed {
 
   public start(): void {
     if (this.controller !== undefined) return
+    this.ready.catch(() => undefined)
     this.controller = new AbortController()
     this.open(++this.generation)
   }
