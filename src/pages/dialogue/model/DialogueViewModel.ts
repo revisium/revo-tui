@@ -11,6 +11,7 @@ import type {
   DialogueLease,
   PendingDialogueMessage,
 } from '../../../modules/dialogue-engine/index.js'
+import { InteractionViewModel } from '../../../features/respond-interaction/index.js'
 
 export class DialogueViewModel {
   public draft = ''
@@ -25,6 +26,7 @@ export class DialogueViewModel {
   private lease: DialogueLease | undefined
   private generation = 0
   private active = false
+  public interaction: InteractionViewModel | undefined
   public constructor(
     private readonly engine: DialogueEngine,
     private readonly actions: DialogueActions,
@@ -70,6 +72,27 @@ export class DialogueViewModel {
   }
   public get dialogue() {
     return this.lease?.dialogue
+  }
+  public get interactionIds(): readonly string[] {
+    const ids = [...(this.dialogue?.interactions.map(({ id }) => id) ?? [])]
+    for (const command of this.commands.pending)
+      if (
+        command.kind === 'response' &&
+        command.dialogueId === this.id &&
+        !ids.includes(command.interactionId)
+      )
+        ids.push(command.interactionId)
+    return ids
+  }
+  public selectInteraction(delta: number): void {
+    const ids = this.interactionIds
+    if (!ids.length) return
+    const current = this.interaction?.id ?? ids[0]
+    if (current === undefined) return
+    const index = Math.max(0, ids.indexOf(current))
+    const id = ids[Math.min(ids.length - 1, Math.max(0, index + delta))]
+    if (id && this.dialogue)
+      this.interaction = new InteractionViewModel(this.dialogue, id)
   }
   public get pending(): PendingDialogueMessage | undefined {
     return this.commands.pending.find(

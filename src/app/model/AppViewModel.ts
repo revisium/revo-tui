@@ -204,6 +204,14 @@ export class AppViewModel {
     dialogue: DialogueViewModel,
     name: string,
   ): boolean {
+    if (name === '[') {
+      dialogue.selectInteraction(-1)
+      return true
+    }
+    if (name === ']') {
+      dialogue.selectInteraction(1)
+      return true
+    }
     if (name === 'pageup') {
       dialogue.pageUp()
       return true

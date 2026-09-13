@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite'
 import { DialogueHistory } from '../../../widgets/dialogue-history/index.js'
 import type { DialogueViewModel } from '../model/DialogueViewModel.js'
+import { InteractionPanel } from '../../../widgets/interaction-panel/index.js'
 import type { ReactElement } from 'react'
 
 export interface DialoguePageProps {
@@ -26,6 +27,9 @@ export const DialoguePage = observer(function DialoguePage({
         history={resource.history}
         bindScroll={model.bindHistoryScroll}
       />
+      {model.interaction ? (
+        <InteractionPanel model={model.interaction} />
+      ) : null}
       {model.pending ? (
         <text fg="#ffcc66">
           Pending: {model.pending.prompt} — press r to retry
