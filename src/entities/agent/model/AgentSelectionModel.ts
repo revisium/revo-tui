@@ -22,7 +22,7 @@ export interface SelectableAgent {
 export class AgentSelectionModel {
   private selectedIdentity = ''
   private selectedRevision = ''
-  private selections = new Map<string, string | boolean>()
+  private readonly selections = new Map<string, string | boolean>()
   private invalidationMessage = ''
   private stopCatalogReaction: (() => void) | undefined
 
