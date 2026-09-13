@@ -6,6 +6,7 @@ import {
   DialogueEngine,
   GraphqlDialogueBackend,
 } from '../../modules/dialogue-engine/index.js'
+import { AgentConfigurationsService, GraphqlAgentConfigurationsTransport } from '../../modules/agent-configurations/index.js'
 import { FileCommandStorage } from '../adapters/command-storage/FileCommandStorage.js'
 import {
   AppViewModel,
@@ -74,15 +75,34 @@ export function createApplication(
     'singleton',
   )
   container.register(
+    GraphqlAgentConfigurationsTransport,
+    () => {
+      const subscriptions = container.get(GraphqlSubscriptions)
+      const transportOptions = { endpoint: endpoints.request }
+      return new GraphqlAgentConfigurationsTransport(transportOptions, subscriptions)
+    },
+    'singleton',
+  )
+  container.register(
+    AgentConfigurationsService,
+    () => {
+      const transport = container.get(GraphqlAgentConfigurationsTransport)
+      return new AgentConfigurationsService(transport)
+    },
+    'singleton',
+  )
+  container.register(
     ApplicationLifecycle,
     () => {
       const subscriptions = container.get(GraphqlSubscriptions)
       const commands = container.get(DialogueCommands)
       const engine = container.get(DialogueEngine)
       const actions = container.get(DialogueActions)
+      const agentConfigurations = container.get(AgentConfigurationsService)
       const initializeServices = async (): Promise<void> => {
         await commands.start()
         engine.start()
+        agentConfigurations.start()
       }
       const disposeServices = async (): Promise<void> => {
         let failure: unknown
@@ -101,6 +121,7 @@ export function createApplication(
         } catch (error) {
           failure ??= error
         } finally {
+          agentConfigurations.dispose()
           subscriptions.dispose()
         }
         if (failure !== undefined) throw failure
@@ -119,8 +140,19 @@ export function createApplication(
     AppViewModel,
     () => {
       const application = container.get(ApplicationLifecycle)
+      const engine = container.get(DialogueEngine)
+      const actions = container.get(DialogueActions)
+      const commands = container.get(DialogueCommands)
+      const agentConfigurations = container.get(AgentConfigurationsService)
       const requestExit = (): void => application.quit()
-      return new AppViewModel(options, requestExit)
+      const viewModelOptions = {
+        ...options,
+        engine,
+        actions,
+        commands,
+        agentConfigurations,
+      }
+      return new AppViewModel(viewModelOptions, requestExit)
     },
     'transient',
   )
