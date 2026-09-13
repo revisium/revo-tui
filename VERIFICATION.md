@@ -15,6 +15,6 @@ CI scans the exact checked-out revision, waits for the Sonar quality gate, verif
 
 Runtime behavior is checked manually for each implementation task in a dedicated lab. Do not add an automated TUI test suite.
 
-## T1 launcher evidence
+## Manual launcher checks
 
-Source `0c414e63cf88aab9f0684d42101f15d6d92aad0e` was checked with Node 26.8.2, pnpm 12.4.1, and Bun 1.4.2 on Linux x64 in the isolated `revo-prod-20260913-t1` lab. Help and version work without a TTY or Bun startup. Invalid/missing URLs and non-TTY launch fail with input exit code 2. In a PTY, missing or invalid Bun and the reserved T2 UI entry fail distinctly. Manual child probes confirmed normal/nonzero exits, HUP/INT/TERM forwarding, AbortSignal cancellation, and terminal restoration against the captured `stty -g` state. macOS validation remains outstanding; no OpenTUI runtime was exercised in T1.
+Verify help and version without a TTY, input errors with exit code 2, package-local Bun and missing UI diagnostics, child exit propagation, signal and abort handling, and terminal restoration against the captured `stty -g` state. Record runtime versions, OS, architecture, and observations outside the product repository. Linux validation does not replace the required macOS manual launcher check.

@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
-import { packageRoot } from './paths.js'
 import { RevoTuiLaunchError } from './errors.js'
+import { readPackageManifest } from './paths.js'
 import { runRevoTui } from './run-revo-tui.js'
 
 const HELP = `revo-tui — terminal client for a running Revo Core API
@@ -100,7 +99,9 @@ function parseArguments(argv: readonly string[]): ParsedArguments {
       dataDir = parsed.value
       index += parsed.consumedNext ? 1 : 0
     } else {
-      throw new CliInputError(`Unknown argument: ${argument ?? ''}`)
+      throw new CliInputError(
+        'Unknown argument. Run --help for supported options.',
+      )
     }
   }
 
@@ -124,9 +125,7 @@ function optionValue(
 }
 
 function packageVersion(): string {
-  const manifest = JSON.parse(
-    readFileSync(resolve(packageRoot(), 'package.json'), 'utf8'),
-  ) as { readonly version?: unknown }
+  const manifest = readPackageManifest()
 
   if (typeof manifest.version !== 'string') {
     throw new Error('Package metadata does not contain a version.')

@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { RevoTuiLaunchError } from './errors.js'
+import { readPackageManifest } from './paths.js'
 
-const BUN_VERSION = '1.4.2'
 const VERSION_TIMEOUT_MS = 5_000
 const launcherRequire = createRequire(import.meta.url)
 
@@ -14,6 +14,7 @@ interface BunPackageManifest {
 }
 
 export function resolveBunExecutable(): string {
+  const expectedVersion = expectedBunVersion()
   let manifestPath: string
 
   try {
@@ -21,7 +22,7 @@ export function resolveBunExecutable(): string {
   } catch {
     throw new RevoTuiLaunchError(
       'bun-not-found',
-      'The package-local bun@1.4.2 runtime is unavailable. Reinstall the package with lifecycle scripts enabled.',
+      `The package-local bun@${expectedVersion} runtime is unavailable. Reinstall the package with lifecycle scripts enabled.`,
     )
   }
 
@@ -32,13 +33,26 @@ export function resolveBunExecutable(): string {
   if (!existsSync(executable)) {
     throw new RevoTuiLaunchError(
       'bun-not-found',
-      'The package-local bun@1.4.2 executable is unavailable. Reinstall the package with lifecycle scripts enabled.',
+      `The package-local bun@${expectedVersion} executable is unavailable. Reinstall the package with lifecycle scripts enabled.`,
     )
   }
 
-  assertBunVersion(executable, manifest.version)
+  assertBunVersion(executable, manifest.version, expectedVersion)
 
   return executable
+}
+
+function expectedBunVersion(): string {
+  const dependency = readPackageManifest().dependencies?.bun
+
+  if (typeof dependency !== 'string' || !/^\d+\.\d+\.\d+$/u.test(dependency)) {
+    throw new RevoTuiLaunchError(
+      'bun-version-mismatch',
+      'The Revo TUI package must pin Bun to an exact version.',
+    )
+  }
+
+  return dependency
 }
 
 function readManifest(path: string): BunPackageManifest {
@@ -47,7 +61,7 @@ function readManifest(path: string): BunPackageManifest {
   } catch {
     throw new RevoTuiLaunchError(
       'bun-not-found',
-      'The package-local bun@1.4.2 manifest could not be read.',
+      'The package-local Bun manifest could not be read.',
     )
   }
 }
@@ -59,7 +73,7 @@ function bunBinPath(manifest: BunPackageManifest): string {
   if (!bin) {
     throw new RevoTuiLaunchError(
       'bun-not-found',
-      'The package-local bun@1.4.2 manifest does not declare its executable.',
+      'The package-local Bun manifest does not declare its executable.',
     )
   }
 
@@ -69,6 +83,7 @@ function bunBinPath(manifest: BunPackageManifest): string {
 function assertBunVersion(
   executable: string,
   packageVersion: string | undefined,
+  expectedVersion: string,
 ): void {
   let runtimeVersion: string
 
@@ -85,10 +100,13 @@ function assertBunVersion(
     )
   }
 
-  if (packageVersion !== BUN_VERSION || runtimeVersion !== BUN_VERSION) {
+  if (
+    packageVersion !== expectedVersion ||
+    runtimeVersion !== expectedVersion
+  ) {
     throw new RevoTuiLaunchError(
       'bun-version-mismatch',
-      `Expected package-local Bun ${BUN_VERSION}, received package ${packageVersion ?? 'unknown'} and runtime ${runtimeVersion || 'unknown'}.`,
+      `Expected package-local Bun ${expectedVersion}, received package ${packageVersion ?? 'unknown'} and runtime ${runtimeVersion || 'unknown'}.`,
     )
   }
 }
