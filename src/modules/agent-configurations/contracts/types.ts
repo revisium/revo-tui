@@ -85,3 +85,8 @@ export interface AgentConfigurationsSnapshot {
   readonly status: AgentConfigurationsStatus
   readonly catalogs: readonly AgentConfigurationCatalog[]
 }
+
+export interface AgentLaunchConfiguration {
+  readonly catalogRevision: string
+  readonly selections: Readonly<Record<string, string | boolean>>
+}
