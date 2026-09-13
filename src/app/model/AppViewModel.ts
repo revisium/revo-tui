@@ -80,7 +80,7 @@ export class AppViewModel {
   }
 
   public handleKey(name: string, ctrl: boolean): void {
-    if (name === 'q' || (ctrl && name === 'c')) {
+    if ((ctrl && name === 'c') || (this.route === 'list' && name === 'q')) {
       this.#requestExit()
       return
     }
