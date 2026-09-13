@@ -21,6 +21,7 @@ export class DialogueViewModel {
   >
   private readonly sendRequest: ObservableRequest<void, [SendAttempt, number]>
   private readonly cancelRequest: ObservableRequest<void, [string, number]>
+  private historyScroll: HistoryScroll | undefined
   private lease: DialogueLease | undefined
   private generation = 0
   private active = false
@@ -53,9 +54,17 @@ export class DialogueViewModel {
         this.assertCurrent(generation, signal)
       },
     )
-    makeAutoObservable<this, 'cancelRequest' | 'readyRequest' | 'sendRequest'>(
+    makeAutoObservable<
       this,
-      { cancelRequest: false, readyRequest: false, sendRequest: false },
+      'cancelRequest' | 'readyRequest' | 'sendRequest' | 'historyScroll'
+    >(
+      this,
+      {
+        cancelRequest: false,
+        readyRequest: false,
+        sendRequest: false,
+        historyScroll: false,
+      },
       { autoBind: true },
     )
   }
@@ -110,9 +119,25 @@ export class DialogueViewModel {
     this.cancelRequest.abort()
     this.lease?.release()
     this.lease = undefined
+    this.historyScroll = undefined
   }
   public setDraft(value: string): void {
     this.draft = value
+  }
+  public bindHistoryScroll(scroll: HistoryScroll | null): void {
+    this.historyScroll = scroll ?? undefined
+  }
+  public pageUp(): void {
+    this.historyScroll?.scrollBy(-1, 'viewport')
+  }
+  public pageDown(): void {
+    this.historyScroll?.scrollBy(1, 'viewport')
+  }
+  public end(): void {
+    if (this.historyScroll) {
+      this.historyScroll.stickyScroll = true
+      this.historyScroll.scrollTo(this.historyScroll.scrollHeight)
+    }
   }
   public back(): void {
     if (!this.active) return
@@ -164,3 +189,10 @@ export class DialogueViewModel {
 type SendAttempt =
   | { readonly kind: 'send'; readonly prompt: string }
   | { readonly kind: 'retry'; readonly commandId: string }
+
+export interface HistoryScroll {
+  stickyScroll: boolean
+  readonly scrollHeight: number
+  scrollBy(delta: number, unit: 'viewport'): void
+  scrollTo(position: number): void
+}

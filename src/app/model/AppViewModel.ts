@@ -186,20 +186,11 @@ export class AppViewModel {
       dialogue.focus = dialogue.focus === 'prompt' ? 'controls' : 'prompt'
       return true
     }
-    if (dialogue.focus === 'controls') {
-      if (name === 'r') {
-        dialogue.retry().catch(() => undefined)
-        return true
-      }
-      if (name === 'c') {
-        dialogue.cancel().catch(() => undefined)
-        return true
-      }
-      if (name === 'o') {
-        dialogue.older().catch(() => undefined)
-        return true
-      }
-    }
+    if (
+      dialogue.focus === 'controls' &&
+      this.handleDialogueControl(dialogue, name)
+    )
+      return true
     return (
       name === 'q' ||
       name === 'x' ||
@@ -207,6 +198,37 @@ export class AppViewModel {
       name === 'h' ||
       name === '?'
     )
+  }
+
+  private handleDialogueControl(
+    dialogue: DialogueViewModel,
+    name: string,
+  ): boolean {
+    if (name === 'pageup') {
+      dialogue.pageUp()
+      return true
+    }
+    if (name === 'pagedown') {
+      dialogue.pageDown()
+      return true
+    }
+    if (name === 'end') {
+      dialogue.end()
+      return true
+    }
+    if (name === 'r') {
+      dialogue.retry().catch(() => undefined)
+      return true
+    }
+    if (name === 'c') {
+      dialogue.cancel().catch(() => undefined)
+      return true
+    }
+    if (name === 'o') {
+      dialogue.older().catch(() => undefined)
+      return true
+    }
+    return false
   }
 
   private openDialogue(id: string): void {

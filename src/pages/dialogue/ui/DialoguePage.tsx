@@ -22,7 +22,10 @@ export const DialoguePage = observer(function DialoguePage({
       <text>
         {summary?.status ?? 'unknown'} {summary?.progress ?? ''}
       </text>
-      <DialogueHistory history={resource.history} />
+      <DialogueHistory
+        history={resource.history}
+        bindScroll={model.bindHistoryScroll}
+      />
       {model.pending ? (
         <text fg="#ffcc66">
           Pending: {model.pending.prompt} — press r to retry
