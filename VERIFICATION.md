@@ -22,3 +22,10 @@ Verify help and version without a TTY, input errors with exit code 2, package-lo
 ## Manual composition checks
 
 Verify the real OpenTUI renderer in a PTY: initial not-connected status, help visibility, resize, keyboard and signal exits, and terminal restoration. Exercise renderer startup and asynchronous render failures in a disposable lab, confirming that the React root unmounts before the renderer is destroyed and each transient ViewModel is disposed once. Record evidence outside the product repository. Linux validation does not replace the required macOS renderer check.
+
+## Manual subscription checks
+
+Against a dedicated Core lab, verify the initial `agentConfigurations` snapshot,
+operation cancellation, connection disposal, and absence of late callbacks. Use a
+disposable local responder to inspect typed access, network, protocol, GraphQL, and
+timeout failures without recording request payloads or credentials.

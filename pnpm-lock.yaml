@@ -181,6 +181,9 @@ importers:
       graphql-request:
         specifier: 6.1.0
         version: 6.1.0(graphql@16.14.2)
+      graphql-sse:
+        specifier: 2.6.1
+        version: 2.6.1(graphql@16.14.2)
       mobx:
         specifier: 6.16.1
         version: 6.16.1
@@ -1020,6 +1023,12 @@ packages:
     resolution: {integrity: sha512-p+XPfS4q7aIpKVcgmnZKhMNqhltk20hfXtkaIkTfjjmiKMJ5xrt5c743cL03y/K7y1rg3WrIC49xGiEQ4mxdNw==}
     peerDependencies:
       graphql: 14 - 16
+
+  graphql-sse@2.6.1:
+    resolution: {integrity: sha512-0KbuzZlrSx2a3BlnyaL0Rf6nHd/giVUGpo8MZiEEugeQIwitnKk5RVWkriXUpuPKxMw1p4GfxYLlEmR9DR21dQ==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      graphql: '>=0.11 <=17'
 
   graphql@16.14.2:
     resolution: {integrity: sha512-Chq1s4CY7jmh8gO2qvLIJyfCDIN+EHLFW/9iShnp1z8FjBQMoodWP1kDC36VAMXXIvAjj4ARa7ntfAV2BrjsbA==}
@@ -2448,6 +2457,10 @@ snapshots:
       graphql: 16.14.2
     transitivePeerDependencies:
       - encoding
+
+  graphql-sse@2.6.1(graphql@16.14.2):
+    dependencies:
+      graphql: 16.14.2
 
   graphql@16.14.2: {}
 
