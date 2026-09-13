@@ -157,15 +157,12 @@ export class AgentSelectionModel {
   public cycleSelectedOption(): void {
     const current = this.options[this.optionIndex]
     if (current === undefined) return
-    const values =
+    const values: readonly (string | boolean)[] =
       current.option.kind === 'boolean'
         ? [false, true]
         : current.option.values.map((value) => value.value)
     const currentValue = current.override ?? current.option.currentValue
-    const index = Math.max(
-      0,
-      values.findIndex((value) => value === currentValue),
-    )
+    const index = Math.max(0, values.indexOf(currentValue))
     const next = values[(index + 1) % values.length]
     if (next !== undefined) this.selectOption(current.option.id, next)
   }
