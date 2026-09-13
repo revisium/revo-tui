@@ -3,6 +3,10 @@ import type {
   DialogueTurn,
   JsonValue,
 } from './dialogue.types.js'
+import type {
+  DialogueInputValues,
+  DialogueInteractionDefinition,
+} from './interaction.types.js'
 
 export interface DialogueItemView {
   readonly id: string
@@ -67,8 +71,25 @@ export interface DialogueResourceView {
   readonly history: DialogueHistoryResourceView
   readonly turns: readonly DialogueTurn[]
   readonly interactions: readonly DialogueInteraction[]
+  interaction(id: string): DialogueInteractionSessionView
   start(): Promise<void>
   refresh(): Promise<void>
+}
+
+export interface DialogueInteractionSessionView {
+  readonly dialogueId: string
+  readonly id: string
+  readonly definition: DialogueInteractionDefinition | undefined
+  readonly active: boolean
+  readonly pending: boolean
+  readonly busy: boolean
+  readonly canRetry: boolean
+  readonly canRespond: boolean
+  readonly error: string
+  choose(optionId: string): Promise<void>
+  submit(values: DialogueInputValues): Promise<void>
+  decline(): Promise<void>
+  retry(): Promise<void>
 }
 
 export interface DialogueLease {

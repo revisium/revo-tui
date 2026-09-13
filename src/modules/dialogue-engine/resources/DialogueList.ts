@@ -6,6 +6,7 @@ import type { DialogueSummary } from '../contracts/dialogue.types.js'
 import { DialogueError } from '../errors/DialogueError.js'
 import type { DialogueStore } from '../state/DialogueStore.js'
 import { DialogueResource } from './DialogueResource.js'
+import type { DialogueCommands } from '../commands/DialogueCommands.js'
 import {
   ResourcePagination,
   validatePagination,
@@ -25,6 +26,7 @@ export class DialogueList {
   public constructor(
     private readonly backend: DialogueReadBackend,
     private readonly store: DialogueStore,
+    private readonly commands: DialogueCommands,
   ) {
     this.pagination = new ResourcePagination({
       canLoadMore: () => this.cursor !== undefined,
@@ -33,6 +35,7 @@ export class DialogueList {
     makeAutoObservable<
       this,
       | 'backend'
+      | 'commands'
       | 'itemIds'
       | 'pagination'
       | 'resources'
@@ -47,6 +50,7 @@ export class DialogueList {
         resources: false,
         seenCursors: false,
         store: false,
+        commands: false,
       },
       { autoBind: true },
     )
@@ -91,7 +95,12 @@ export class DialogueList {
   public resource(id: string): DialogueResource {
     let resource = this.resources.get(id)
     if (resource === undefined) {
-      resource = new DialogueResource(id, this.backend, this.store)
+      resource = new DialogueResource(
+        id,
+        this.backend,
+        this.store,
+        this.commands,
+      )
       this.resources.set(id, resource)
     }
     return resource

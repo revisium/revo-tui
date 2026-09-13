@@ -84,7 +84,7 @@ export class DialogueSynchronization {
     resource.history.setConnectionError('')
     await linked(resource.refresh, signal, resource.dispose)
     if (signal.aborted) throw aborted()
-    await this.refreshRelated(resource.id, signal)
+    await this.refreshRelated(resource, signal)
     return requiredCursor(resource.history.snapshotCursor)
   }
 
@@ -124,16 +124,17 @@ export class DialogueSynchronization {
       if (effectiveChange.item != null)
         resource.history.include(effectiveChange.item)
     })
-    if (relatedChanged(change))
-      await this.refreshRelated(change.dialogueId, signal)
+    if (relatedChanged(change)) await this.refreshRelated(resource, signal)
   }
 
   private async refreshRelated(
-    dialogueId: string,
+    resource: DialogueResource,
     signal: AbortSignal,
   ): Promise<void> {
+    const dialogueId = resource.id
     const generation = this.relatedGeneration(dialogueId) + 1
     this.relatedGenerations.set(dialogueId, generation)
+    const resourceGeneration = resource.beginRelatedRefresh()
     const [turns, interactions] = await Promise.all([
       collect(
         (after) => this.backend.turns(dialogueId, after, signal),
@@ -148,7 +149,7 @@ export class DialogueSynchronization {
     ])
     if (signal.aborted || generation !== this.relatedGeneration(dialogueId))
       return
-    this.store.require(dialogueId).replaceRelated(turns, interactions)
+    resource.completeRelatedRefresh(resourceGeneration, turns, interactions)
   }
 
   private relatedGeneration(dialogueId: string): number {
