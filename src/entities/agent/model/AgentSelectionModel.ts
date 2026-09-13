@@ -24,6 +24,7 @@ export class AgentSelectionModel {
   private selectedRevision = ''
   private readonly selections = new Map<string, string | boolean>()
   private invalidationMessage = ''
+  private optionIndex = 0
   private stopCatalogReaction: (() => void) | undefined
 
   public constructor(private readonly service: AgentConfigurationsService) {
@@ -53,6 +54,10 @@ export class AgentSelectionModel {
       option,
       override: this.selections.get(option.id),
     }))
+  }
+
+  public get selectedOptionIndex(): number {
+    return this.optionIndex
   }
 
   public get ready(): boolean {
@@ -125,7 +130,41 @@ export class AgentSelectionModel {
     }
     this.selectedIdentity = identity
     this.selectedRevision = catalog.catalogRevision
+    this.optionIndex = 0
     this.invalidationMessage = ''
+  }
+
+  public selectNext(delta: number): void {
+    const agents = this.agents
+    if (!agents.length) return
+    const index = agents.findIndex(
+      (agent) => agent.identity === this.selectedIdentity,
+    )
+    const start = index < 0 ? -1 : index
+    const next = agents[Math.min(agents.length - 1, Math.max(0, start + delta))]
+    if (next !== undefined) this.selectAgent(next.identity)
+  }
+
+  public selectNextOption(delta: number): void {
+    const options = this.options
+    if (!options.length) return
+    this.optionIndex = Math.min(
+      options.length - 1,
+      Math.max(0, this.optionIndex + delta),
+    )
+  }
+
+  public cycleSelectedOption(): void {
+    const current = this.options[this.optionIndex]
+    if (current === undefined) return
+    const values: readonly (string | boolean)[] =
+      current.option.kind === 'boolean'
+        ? [false, true]
+        : current.option.values.map((value) => value.value)
+    const currentValue = current.override ?? current.option.currentValue
+    const index = Math.max(0, values.indexOf(currentValue))
+    const next = values[(index + 1) % values.length]
+    if (next !== undefined) this.selectOption(current.option.id, next)
   }
 
   public selectOption(id: string, value: string | boolean): void {
