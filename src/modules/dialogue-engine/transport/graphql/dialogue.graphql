@@ -49,6 +49,32 @@ fragment DialogueTurnFields on DialogueTurnModel {
   outcome
 }
 
+fragment DialogueInteractionFields on DialogueInteractionModel {
+  id
+  dialogueId
+  turnId
+  status
+  request
+  response
+  responseCommandId
+}
+
+fragment DialogueChangeFields on DialogueChangeModel {
+  cursor
+  dialogueId
+  kind
+  itemId
+  itemVersion
+  baseItemVersion
+  textDelta
+  item {
+    ...DialogueItemFields
+  }
+  summary {
+    ...DialogueSummaryFields
+  }
+}
+
 query DialogueList($first: Int!, $after: String) {
   dialogues(first: $first, after: $after) {
     edges {
@@ -114,13 +140,7 @@ query DialogueInteractions($id: ID!, $first: Int!, $after: String) {
   dialogueInteractions(dialogueId: $id, first: $first, after: $after) {
     edges {
       node {
-        id
-        dialogueId
-        turnId
-        status
-        request
-        response
-        responseCommandId
+        ...DialogueInteractionFields
       }
     }
     pageInfo {
@@ -129,5 +149,59 @@ query DialogueInteractions($id: ID!, $first: Int!, $after: String) {
     }
     snapshotCursor
     totalCount
+  }
+}
+
+mutation CreateDialogue($input: CreateDialogueInput!) {
+  createDialogue(input: $input) {
+    ...DialogueSummaryFields
+  }
+}
+
+mutation SendDialogue($input: SendDialogueInput!) {
+  sendDialogueMessage(input: $input) {
+    ...DialogueTurnFields
+  }
+}
+
+mutation RespondDialogue($input: RespondDialogueInput!) {
+  respondDialogue(input: $input) {
+    ...DialogueInteractionFields
+  }
+}
+
+mutation CancelDialogue($id: ID!, $turnId: ID!) {
+  cancelDialogueTurn(dialogueId: $id, turnId: $turnId) {
+    ...DialogueTurnFields
+  }
+}
+
+mutation ReadDialogue($id: ID!, $through: String!) {
+  markDialogueRead(dialogueId: $id, through: $through) {
+    ...DialogueSummaryFields
+  }
+}
+
+mutation ReopenDialogue($id: ID!) {
+  reopenDialogue(dialogueId: $id) {
+    ...DialogueSummaryFields
+  }
+}
+
+mutation ForkDialogue($input: ForkDialogueInput!) {
+  forkDialogue(input: $input) {
+    ...DialogueSummaryFields
+  }
+}
+
+subscription DialogueEvents($after: String, $ids: [ID!]) {
+  dialogueChanges(after: $after, dialogueIds: $ids) {
+    ...DialogueChangeFields
+  }
+}
+
+subscription DialogueSummaries($after: String, $ids: [ID!]) {
+  dialogueSummaryChanges(after: $after, dialogueIds: $ids) {
+    ...DialogueChangeFields
   }
 }

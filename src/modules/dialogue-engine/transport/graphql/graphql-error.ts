@@ -1,4 +1,5 @@
 import { DialogueError } from '../../errors/DialogueError.js'
+import type { SubscriptionError } from '../../../graphql-subscriptions/index.js'
 
 interface ErrorResponse {
   readonly errors?: unknown
@@ -20,6 +21,7 @@ const TRANSIENT_CODES = new Set([
   'SERVICE_UNAVAILABLE',
   'TOO_MANY_REQUESTS',
 ])
+const CURSOR_MESSAGE_PREFIXES = ['CURSOR_AHEAD:', 'CURSOR_UNAVAILABLE:']
 
 export function dialogueRequestError(error: unknown): DialogueError {
   if (error instanceof DialogueError) return error
@@ -73,6 +75,58 @@ export function dialogueRequestError(error: unknown): DialogueError {
 
 export function protocolError(message: string): DialogueError {
   return new DialogueError('protocol', message, 'refresh')
+}
+
+export function dialogueSubscriptionError(error: unknown): DialogueError {
+  if (error instanceof DialogueError) return error
+  if (!isSubscriptionError(error)) {
+    return new DialogueError(
+      'protocol',
+      'The dialogue subscription failed.',
+      'stop',
+    )
+  }
+  if (error.code === 'access-denied') {
+    return new DialogueError(
+      'access-denied',
+      'Dialogue access was denied.',
+      'stop',
+    )
+  }
+  if (error.code === 'graphql-execution') {
+    const recovery = error.graphqlMessages.some((message) =>
+      CURSOR_MESSAGE_PREFIXES.some((prefix) => message.startsWith(prefix)),
+    )
+      ? 'refresh'
+      : 'stop'
+    return new DialogueError(
+      'graphql-execution',
+      'The dialogue subscription was rejected by GraphQL.',
+      recovery,
+    )
+  }
+  if (error.code === 'network' || error.code === 'timeout') {
+    return new DialogueError(
+      'network',
+      'The dialogue subscription connection failed.',
+      'retry',
+    )
+  }
+  return new DialogueError(
+    'protocol',
+    'The dialogue subscription protocol failed.',
+    'stop',
+  )
+}
+
+function isSubscriptionError(error: unknown): error is SubscriptionError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'graphqlMessages' in error &&
+    Array.isArray(error.graphqlMessages)
+  )
 }
 
 function responseOf(error: unknown): ErrorResponse {

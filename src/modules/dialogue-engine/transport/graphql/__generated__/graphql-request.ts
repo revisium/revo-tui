@@ -349,6 +349,62 @@ export type DialogueTurnFieldsFragment = {
   outcome?: JsonValue | null
 }
 
+export type DialogueInteractionFieldsFragment = {
+  id: string
+  dialogueId: string
+  turnId?: string | null
+  status: string
+  request: JsonValue
+  response?: JsonValue | null
+  responseCommandId?: string | null
+}
+
+export type DialogueChangeFieldsFragment = {
+  cursor: string
+  dialogueId: string
+  kind: string
+  itemId?: string | null
+  itemVersion?: string | null
+  baseItemVersion?: string | null
+  textDelta?: string | null
+  item?: {
+    id: string
+    dialogueId: string
+    sequence: string
+    turnId?: string | null
+    kind: string
+    source: string
+    text: string
+    payload?: JsonValue | null
+    status: string
+    version: string
+    createdAt: string
+    historical: boolean
+  } | null
+  summary?: {
+    id: string
+    title: string
+    agentId: string
+    agentVersion: string
+    agentInstallationId: string
+    agentConfiguration: JsonValue
+    status: string
+    progress: string
+    pendingCount: number
+    lastOutcome?: string | null
+    activeTurnId?: string | null
+    createdAt: string
+    updatedAt: string
+    version: string
+    significantSequence: string
+    readSignificantSequence: string
+    unreadCount: number
+    contextMode: string
+    originDialogueId?: string | null
+    originTurnId?: string | null
+  } | null
+}
+
 export type DialogueListQueryVariables = Exact<{
   first: Scalars['Int']['input']
   after?: InputMaybe<Scalars['String']['input']>
@@ -521,6 +577,284 @@ export type DialogueInteractionsQuery = {
   }
 }
 
+export type CreateDialogueMutationVariables = Exact<{
+  input: CreateDialogueInput
+}>
+
+export type CreateDialogueMutation = {
+  createDialogue: {
+    id: string
+    title: string
+    agentId: string
+    agentVersion: string
+    agentInstallationId: string
+    agentConfiguration: JsonValue
+    status: string
+    progress: string
+    pendingCount: number
+    lastOutcome?: string | null
+    activeTurnId?: string | null
+    createdAt: string
+    updatedAt: string
+    version: string
+    significantSequence: string
+    readSignificantSequence: string
+    unreadCount: number
+    contextMode: string
+    originDialogueId?: string | null
+    originTurnId?: string | null
+  }
+}
+
+export type SendDialogueMutationVariables = Exact<{
+  input: SendDialogueInput
+}>
+
+export type SendDialogueMutation = {
+  sendDialogueMessage: {
+    id: string
+    dialogueId: string
+    commandId: string
+    userItemId: string
+    status: string
+    dispatchState: string
+    cancelRequested: boolean
+    completedAt?: string | null
+    endItemSequence?: string | null
+    outcome?: JsonValue | null
+  }
+}
+
+export type RespondDialogueMutationVariables = Exact<{
+  input: RespondDialogueInput
+}>
+
+export type RespondDialogueMutation = {
+  respondDialogue: {
+    id: string
+    dialogueId: string
+    turnId?: string | null
+    status: string
+    request: JsonValue
+    response?: JsonValue | null
+    responseCommandId?: string | null
+  }
+}
+
+export type CancelDialogueMutationVariables = Exact<{
+  id: Scalars['ID']['input']
+  turnId: Scalars['ID']['input']
+}>
+
+export type CancelDialogueMutation = {
+  cancelDialogueTurn: {
+    id: string
+    dialogueId: string
+    commandId: string
+    userItemId: string
+    status: string
+    dispatchState: string
+    cancelRequested: boolean
+    completedAt?: string | null
+    endItemSequence?: string | null
+    outcome?: JsonValue | null
+  }
+}
+
+export type ReadDialogueMutationVariables = Exact<{
+  id: Scalars['ID']['input']
+  through: Scalars['String']['input']
+}>
+
+export type ReadDialogueMutation = {
+  markDialogueRead: {
+    id: string
+    title: string
+    agentId: string
+    agentVersion: string
+    agentInstallationId: string
+    agentConfiguration: JsonValue
+    status: string
+    progress: string
+    pendingCount: number
+    lastOutcome?: string | null
+    activeTurnId?: string | null
+    createdAt: string
+    updatedAt: string
+    version: string
+    significantSequence: string
+    readSignificantSequence: string
+    unreadCount: number
+    contextMode: string
+    originDialogueId?: string | null
+    originTurnId?: string | null
+  }
+}
+
+export type ReopenDialogueMutationVariables = Exact<{
+  id: Scalars['ID']['input']
+}>
+
+export type ReopenDialogueMutation = {
+  reopenDialogue: {
+    id: string
+    title: string
+    agentId: string
+    agentVersion: string
+    agentInstallationId: string
+    agentConfiguration: JsonValue
+    status: string
+    progress: string
+    pendingCount: number
+    lastOutcome?: string | null
+    activeTurnId?: string | null
+    createdAt: string
+    updatedAt: string
+    version: string
+    significantSequence: string
+    readSignificantSequence: string
+    unreadCount: number
+    contextMode: string
+    originDialogueId?: string | null
+    originTurnId?: string | null
+  }
+}
+
+export type ForkDialogueMutationVariables = Exact<{
+  input: ForkDialogueInput
+}>
+
+export type ForkDialogueMutation = {
+  forkDialogue: {
+    id: string
+    title: string
+    agentId: string
+    agentVersion: string
+    agentInstallationId: string
+    agentConfiguration: JsonValue
+    status: string
+    progress: string
+    pendingCount: number
+    lastOutcome?: string | null
+    activeTurnId?: string | null
+    createdAt: string
+    updatedAt: string
+    version: string
+    significantSequence: string
+    readSignificantSequence: string
+    unreadCount: number
+    contextMode: string
+    originDialogueId?: string | null
+    originTurnId?: string | null
+  }
+}
+
+export type DialogueEventsSubscriptionVariables = Exact<{
+  after?: InputMaybe<Scalars['String']['input']>
+  ids?: InputMaybe<Array<Scalars['ID']['input']> | Scalars['ID']['input']>
+}>
+
+export type DialogueEventsSubscription = {
+  dialogueChanges: {
+    cursor: string
+    dialogueId: string
+    kind: string
+    itemId?: string | null
+    itemVersion?: string | null
+    baseItemVersion?: string | null
+    textDelta?: string | null
+    item?: {
+      id: string
+      dialogueId: string
+      sequence: string
+      turnId?: string | null
+      kind: string
+      source: string
+      text: string
+      payload?: JsonValue | null
+      status: string
+      version: string
+      createdAt: string
+      historical: boolean
+    } | null
+    summary?: {
+      id: string
+      title: string
+      agentId: string
+      agentVersion: string
+      agentInstallationId: string
+      agentConfiguration: JsonValue
+      status: string
+      progress: string
+      pendingCount: number
+      lastOutcome?: string | null
+      activeTurnId?: string | null
+      createdAt: string
+      updatedAt: string
+      version: string
+      significantSequence: string
+      readSignificantSequence: string
+      unreadCount: number
+      contextMode: string
+      originDialogueId?: string | null
+      originTurnId?: string | null
+    } | null
+  }
+}
+
+export type DialogueSummariesSubscriptionVariables = Exact<{
+  after?: InputMaybe<Scalars['String']['input']>
+  ids?: InputMaybe<Array<Scalars['ID']['input']> | Scalars['ID']['input']>
+}>
+
+export type DialogueSummariesSubscription = {
+  dialogueSummaryChanges: {
+    cursor: string
+    dialogueId: string
+    kind: string
+    itemId?: string | null
+    itemVersion?: string | null
+    baseItemVersion?: string | null
+    textDelta?: string | null
+    item?: {
+      id: string
+      dialogueId: string
+      sequence: string
+      turnId?: string | null
+      kind: string
+      source: string
+      text: string
+      payload?: JsonValue | null
+      status: string
+      version: string
+      createdAt: string
+      historical: boolean
+    } | null
+    summary?: {
+      id: string
+      title: string
+      agentId: string
+      agentVersion: string
+      agentInstallationId: string
+      agentConfiguration: JsonValue
+      status: string
+      progress: string
+      pendingCount: number
+      lastOutcome?: string | null
+      activeTurnId?: string | null
+      createdAt: string
+      updatedAt: string
+      version: string
+      significantSequence: string
+      readSignificantSequence: string
+      unreadCount: number
+      contextMode: string
+      originDialogueId?: string | null
+      originTurnId?: string | null
+    } | null
+  }
+}
+
 export type SdkFunctionWrapper = <T>(
   action: (requestHeaders?: Record<string, string>) => Promise<T>,
   operationName: string,
@@ -633,6 +967,150 @@ export function getSdk(
           ),
         'DialogueInteractions',
         'query',
+        variables,
+      )
+    },
+    CreateDialogue(
+      variables: CreateDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<CreateDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<CreateDialogueMutation>(
+            Operations.CreateDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'CreateDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    SendDialogue(
+      variables: SendDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<SendDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<SendDialogueMutation>(
+            Operations.SendDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'SendDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    RespondDialogue(
+      variables: RespondDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<RespondDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<RespondDialogueMutation>(
+            Operations.RespondDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'RespondDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    CancelDialogue(
+      variables: CancelDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<CancelDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<CancelDialogueMutation>(
+            Operations.CancelDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'CancelDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    ReadDialogue(
+      variables: ReadDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<ReadDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<ReadDialogueMutation>(
+            Operations.ReadDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'ReadDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    ReopenDialogue(
+      variables: ReopenDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<ReopenDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<ReopenDialogueMutation>(
+            Operations.ReopenDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'ReopenDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    ForkDialogue(
+      variables: ForkDialogueMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<ForkDialogueMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<ForkDialogueMutation>(
+            Operations.ForkDialogueDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'ForkDialogue',
+        'mutation',
+        variables,
+      )
+    },
+    DialogueEvents(
+      variables?: DialogueEventsSubscriptionVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<DialogueEventsSubscription> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<DialogueEventsSubscription>(
+            Operations.DialogueEventsDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'DialogueEvents',
+        'subscription',
+        variables,
+      )
+    },
+    DialogueSummaries(
+      variables?: DialogueSummariesSubscriptionVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+    ): Promise<DialogueSummariesSubscription> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<DialogueSummariesSubscription>(
+            Operations.DialogueSummariesDocument,
+            variables,
+            { ...requestHeaders, ...wrappedRequestHeaders },
+          ),
+        'DialogueSummaries',
+        'subscription',
         variables,
       )
     },
