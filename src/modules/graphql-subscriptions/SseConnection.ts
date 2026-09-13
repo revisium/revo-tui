@@ -109,7 +109,7 @@ export class SseConnection {
     this.clearConnectTimer()
     this.#controller.abort()
 
-    for (const operation of [...this.#operations]) {
+    for (const operation of this.#operations) {
       this.cancel(operation)
     }
 
@@ -260,7 +260,7 @@ export class SseConnection {
     this.clearConnectTimer()
     this.#controller.abort()
 
-    for (const operation of [...this.#operations]) {
+    for (const operation of this.#operations) {
       this.operationError(operation, error)
     }
 
