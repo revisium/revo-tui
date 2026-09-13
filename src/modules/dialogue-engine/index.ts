@@ -44,6 +44,7 @@ export type {
   ProjectionResult,
 } from './contracts/public.types.js'
 export { DialogueCommands } from './commands/DialogueCommands.js'
+export { DialogueActions } from './actions/DialogueActions.js'
 export { DialogueEngine } from './engine/DialogueEngine.js'
 export { DialogueError } from './errors/DialogueError.js'
 export type {

@@ -21,14 +21,16 @@ export interface ApplicationLifecycleOptions {
   readonly createViewModel: () => AppViewModel
   readonly createRenderer: RendererFactory
   readonly createRoot: RootFactory
-  readonly disposeServices: () => void
+  readonly initializeServices: () => Promise<void>
+  readonly disposeServices: () => Promise<void>
 }
 
 export class ApplicationLifecycle {
   readonly #createViewModel: () => AppViewModel
   readonly #createRenderer: RendererFactory
   readonly #createRoot: RootFactory
-  readonly #disposeServices: () => void
+  readonly #initializeServices: () => Promise<void>
+  readonly #disposeServices: () => Promise<void>
   readonly #signalHandlers = new Map<AppSignal, () => void>()
   #renderer: CliRenderer | undefined
   #root: Root | undefined
@@ -44,6 +46,7 @@ export class ApplicationLifecycle {
     this.#createViewModel = options.createViewModel
     this.#createRenderer = options.createRenderer
     this.#createRoot = options.createRoot
+    this.#initializeServices = options.initializeServices
     this.#disposeServices = options.disposeServices
   }
 
@@ -70,6 +73,7 @@ export class ApplicationLifecycle {
   }
 
   private async startRenderer(): Promise<void> {
+    await this.#initializeServices()
     const renderer = await this.#createRenderer({
       clearOnShutdown: false,
       exitOnCtrlC: false,
@@ -152,7 +156,7 @@ export class ApplicationLifecycle {
       startupError = caughtError
     }
 
-    const cleanupError = this.releaseResources()
+    const cleanupError = await this.releaseResources()
     const finalError = error ?? startupError ?? cleanupError
 
     if (finalError !== undefined) {
@@ -162,7 +166,7 @@ export class ApplicationLifecycle {
     }
   }
 
-  private releaseResources(): unknown {
+  private async releaseResources(): Promise<unknown> {
     const renderer = this.#renderer
     renderer?.off(CliRenderEvents.RENDER_ERROR, this.onRenderError)
     renderer?.off(CliRenderEvents.DESTROY, this.onRendererDestroy)
@@ -170,16 +174,16 @@ export class ApplicationLifecycle {
     let cleanupError: unknown
 
     try {
-      this.#root?.unmount()
+      if (!this.#servicesDisposed) {
+        this.#servicesDisposed = true
+        await this.#disposeServices()
+      }
     } catch (error) {
       cleanupError = error
     }
 
     try {
-      if (!this.#servicesDisposed) {
-        this.#servicesDisposed = true
-        this.#disposeServices()
-      }
+      this.#root?.unmount()
     } catch (error) {
       cleanupError ??= error
     }

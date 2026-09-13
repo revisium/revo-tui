@@ -3,6 +3,7 @@ import { makeAutoObservable } from 'mobx'
 export interface AppViewModelOptions {
   readonly apiUrl: string
   readonly clientName: string
+  readonly dataDir: string
 }
 
 export class AppViewModel {
@@ -24,7 +25,7 @@ export class AppViewModel {
 
   public get connectionStatus(): string {
     return this.mounted
-      ? 'Not connected — transport is not configured yet.'
+      ? 'Ready — dialogue services are initialized.'
       : 'Starting terminal client…'
   }
 
