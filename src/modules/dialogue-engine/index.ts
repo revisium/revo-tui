@@ -32,6 +32,7 @@ export type {
   DialogueView,
   ProjectionResult,
 } from './contracts/public.types.js'
+export { DialogueCommands } from './commands/DialogueCommands.js'
 export { DialogueError } from './errors/DialogueError.js'
 export type {
   DialogueErrorCode,
