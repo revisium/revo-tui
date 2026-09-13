@@ -7,6 +7,7 @@ import type {
 import type { AgentConfigurationsService } from '../../modules/agent-configurations/index.js'
 import { ComposeViewModel } from '../../pages/compose/index.js'
 import { DialogueListViewModel } from '../../pages/dialogues/index.js'
+import { DialogueViewModel } from '../../pages/dialogue/index.js'
 
 export interface AppViewModelOptions {
   readonly apiUrl: string
@@ -24,9 +25,10 @@ export interface AppViewModelDependencies {
 export class AppViewModel {
   public helpVisible = false
   public mounted = false
-  public route: 'list' | 'compose' = 'list'
+  public route: 'list' | 'compose' | 'dialogue' = 'list'
   public readonly dialogues: DialogueListViewModel
   public compose: ComposeViewModel
+  public dialogue: DialogueViewModel | undefined
   readonly #dependencies: AppViewModelDependencies
 
   readonly #options: AppViewModelOptions
@@ -85,6 +87,7 @@ export class AppViewModel {
       return
     }
     if (this.route === 'compose' && this.handleComposeKey(name)) return
+    if (this.route === 'dialogue' && this.handleDialogueKey(name)) return
     if (this.route === 'list' && this.handleListKey(name)) return
     if (name === '?' || name === 'h') {
       this.helpVisible = !this.helpVisible
@@ -140,6 +143,10 @@ export class AppViewModel {
   }
 
   private handleListKey(name: string): boolean {
+    if (name === 'enter' && this.dialogues.selectedId) {
+      this.openDialogue(this.dialogues.selectedId)
+      return true
+    }
     if (name === 'n') {
       this.compose.dispose()
       this.compose = this.createCompose()
@@ -164,6 +171,57 @@ export class AppViewModel {
       return true
     }
     return false
+  }
+
+  private handleDialogueKey(name: string): boolean {
+    const dialogue = this.dialogue
+    if (!dialogue) return false
+    if (name === 'escape') {
+      dialogue.back()
+      return true
+    }
+    if (name === 'tab') {
+      dialogue.focus = dialogue.focus === 'prompt' ? 'controls' : 'prompt'
+      return true
+    }
+    if (dialogue.focus === 'controls') {
+      if (name === 'r') {
+        dialogue.retry().catch(() => undefined)
+        return true
+      }
+      if (name === 'c') {
+        dialogue.cancel().catch(() => undefined)
+        return true
+      }
+      if (name === 'o') {
+        dialogue.older().catch(() => undefined)
+        return true
+      }
+    }
+    return (
+      name === 'q' ||
+      name === 'x' ||
+      name === 'y' ||
+      name === 'h' ||
+      name === '?'
+    )
+  }
+
+  private openDialogue(id: string): void {
+    this.dialogue?.dispose()
+    this.dialogue = new DialogueViewModel(
+      this.#dependencies.engine,
+      this.#dependencies.actions,
+      this.#dependencies.commands,
+      id,
+      () => {
+        this.dialogue?.dispose()
+        this.dialogue = undefined
+        this.route = 'list'
+      },
+    )
+    this.dialogue.mount()
+    this.route = 'dialogue'
   }
 
   private createCompose(): ComposeViewModel {
