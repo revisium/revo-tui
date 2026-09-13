@@ -1,18 +1,14 @@
 import type { CodegenConfig } from '@graphql-codegen/cli'
 
-const operations =
-  'src/modules/agent-configurations/transport/graphql/*.graphql'
-const generated =
-  'src/modules/agent-configurations/transport/graphql/__generated__'
 const scalars = { DateTime: 'string', JSON: 'unknown' }
 
-const config: CodegenConfig = {
-  overwrite: true,
-  hooks: { afterAllFileWrite: ['prettier --write'] },
-  schema: 'src/__generated__/schema.graphql',
-  documents: [operations],
-  generates: {
+function outputs(
+  operations: string,
+  generated: string,
+): CodegenConfig['generates'] {
+  return {
     [`${generated}/graphql-request.ts`]: {
+      documents: operations,
       plugins: [
         'typescript',
         'typescript-operations',
@@ -29,6 +25,7 @@ const config: CodegenConfig = {
       },
     },
     [`${generated}/typed-document-nodes.ts`]: {
+      documents: operations,
       plugins: [
         {
           add: { content: "import type * as Types from './graphql-request';" },
@@ -37,6 +34,22 @@ const config: CodegenConfig = {
       ],
       config: { importOperationTypesFrom: 'Types' },
     },
+  }
+}
+
+const config: CodegenConfig = {
+  overwrite: true,
+  hooks: { afterAllFileWrite: ['prettier --write'] },
+  schema: 'src/__generated__/schema.graphql',
+  generates: {
+    ...outputs(
+      'src/modules/agent-configurations/transport/graphql/*.graphql',
+      'src/modules/agent-configurations/transport/graphql/__generated__',
+    ),
+    ...outputs(
+      'src/modules/dialogue-engine/transport/graphql/*.graphql',
+      'src/modules/dialogue-engine/transport/graphql/__generated__',
+    ),
   },
 }
 
