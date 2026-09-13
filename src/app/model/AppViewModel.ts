@@ -172,7 +172,8 @@ export class AppViewModel {
       this.#dependencies.actions,
       this.#dependencies.commands,
       (id) => {
-        if (this.compose !== model) return
+        if (!this.mounted || this.route !== 'compose' || this.compose !== model)
+          return
         this.dialogues.selectedId = id
         model.dispose()
         this.route = 'list'

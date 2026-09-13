@@ -8,6 +8,7 @@ import {
 } from '../../../modules/dialogue-engine/index.js'
 import {
   ObservableRequest,
+  RequestAbortError,
   errorMessageOf,
 } from '../../../modules/observable-request/index.js'
 
@@ -39,10 +40,12 @@ export class ComposeViewModel {
   public createdId: string | undefined
   public pendingCommandId: string | undefined
   public readonly selection: AgentSelectionModel
-  private readonly request: ObservableRequest<string, [ComposeAttempt]>
+  private readonly request: ObservableRequest<string, [ComposeAttempt, number]>
   private uncertainCreate = false
   private validationError = ''
   private showRequestError = false
+  private generation = 0
+  private active = false
 
   public constructor(
     service: AgentConfigurationsService,
@@ -52,7 +55,8 @@ export class ComposeViewModel {
   ) {
     this.selection = new AgentSelectionModel(service)
     this.request = ObservableRequest.of(
-      ({ signal }, attempt) => this.perform(signal, attempt),
+      ({ signal }, attempt, generation) =>
+        this.perform(signal, attempt, generation),
       { skipResetting: true },
     )
     makeAutoObservable<this, 'actions' | 'commands' | 'onCreated' | 'request'>(
@@ -105,10 +109,16 @@ export class ComposeViewModel {
   }
 
   public mount(): void {
+    if (this.active) return
+    this.active = true
+    this.generation += 1
     this.selection.start()
   }
 
   public dispose(): void {
+    if (!this.active) return
+    this.active = false
+    this.generation += 1
     this.request.abort()
     this.selection.dispose()
   }
@@ -142,7 +152,7 @@ export class ComposeViewModel {
   }
 
   public async retrySend(): Promise<void> {
-    if (this.busy || this.createdId === undefined) return
+    if (!this.active || this.busy || this.createdId === undefined) return
     const attempt: RetrySendAttempt = Object.freeze({
       kind: 'send',
       dialogueId: this.createdId,
@@ -157,6 +167,7 @@ export class ComposeViewModel {
   public async submit(): Promise<void> {
     if (
       this.busy ||
+      !this.active ||
       this.prompt.trim() === '' ||
       this.createdId !== undefined ||
       this.uncertainCreate
@@ -186,9 +197,11 @@ export class ComposeViewModel {
   }
 
   private async execute(attempt: ComposeAttempt): Promise<void> {
+    const generation = this.generation
     this.validationError = ''
     this.showRequestError = false
-    const result = await this.request.fetch(attempt)
+    const result = await this.request.fetch(attempt, generation)
+    if (!this.isCurrent(generation)) return
     if (!result.isRight) {
       this.showRequestError = true
       throw result.error
@@ -199,20 +212,22 @@ export class ComposeViewModel {
   private async perform(
     signal: AbortSignal,
     attempt: ComposeAttempt,
+    generation: number,
   ): Promise<string> {
     const dialogueId =
       attempt.kind === 'create'
-        ? await this.createDialogue(attempt, signal)
+        ? await this.createDialogue(attempt, signal, generation)
         : attempt.dialogueId
-    signal.throwIfAborted()
-    await this.sendPrompt(dialogueId, attempt, signal)
-    signal.throwIfAborted()
+    this.assertCurrent(generation, signal)
+    await this.sendPrompt(dialogueId, attempt, signal, generation)
+    this.assertCurrent(generation, signal)
     return dialogueId
   }
 
   private async createDialogue(
     attempt: NewDialogueAttempt,
     signal: AbortSignal,
+    generation: number,
   ): Promise<string> {
     try {
       const resource = await this.actions.create(
@@ -225,13 +240,14 @@ export class ComposeViewModel {
         },
         signal,
       )
-      signal.throwIfAborted()
+      this.assertCurrent(generation, signal)
       runInAction(() => {
         this.createdId = resource.id
       })
       return resource.id
     } catch (error) {
       if (
+        this.isCurrent(generation) &&
         error instanceof DialogueError &&
         error.code === 'server' &&
         error.recovery === 'stop'
@@ -248,6 +264,7 @@ export class ComposeViewModel {
     dialogueId: string,
     attempt: ComposeAttempt,
     signal: AbortSignal,
+    generation: number,
   ): Promise<void> {
     try {
       if (attempt.kind === 'send' && attempt.commandId !== undefined) {
@@ -255,7 +272,9 @@ export class ComposeViewModel {
       } else {
         await this.commands.send(dialogueId, attempt.prompt, signal)
       }
+      this.assertCurrent(generation, signal)
     } catch (error) {
+      if (!this.isCurrent(generation)) throw error
       const pending = this.commands.pending.find(
         (command) =>
           command.kind === 'message' &&
@@ -267,5 +286,14 @@ export class ComposeViewModel {
       })
       throw error
     }
+  }
+
+  private isCurrent(generation: number): boolean {
+    return this.active && generation === this.generation
+  }
+
+  private assertCurrent(generation: number, signal: AbortSignal): void {
+    if (!this.isCurrent(generation) || signal.aborted)
+      throw new RequestAbortError()
   }
 }
