@@ -1,3 +1,4 @@
+import type { JsonValue } from '../../../contracts/dialogue.types.js'
 import type { GraphQLClient, RequestOptions } from 'graphql-request'
 import * as Operations from './typed-document-nodes'
 export type Maybe<T> = T | null
@@ -31,7 +32,7 @@ export type Scalars = {
   /** A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format. */
   DateTime: { input: string; output: string }
   /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
-  JSON: { input: unknown; output: unknown }
+  JSON: { input: JsonValue; output: JsonValue }
 }
 
 export type AdrAlternativeInput = {
@@ -303,7 +304,7 @@ export type DialogueSummaryFieldsFragment = {
   agentId: string
   agentVersion: string
   agentInstallationId: string
-  agentConfiguration: unknown
+  agentConfiguration: JsonValue
   status: string
   progress: string
   pendingCount: number
@@ -328,7 +329,7 @@ export type DialogueItemFieldsFragment = {
   kind: string
   source: string
   text: string
-  payload?: unknown | null
+  payload?: JsonValue | null
   status: string
   version: string
   createdAt: string
@@ -345,7 +346,7 @@ export type DialogueTurnFieldsFragment = {
   cancelRequested: boolean
   completedAt?: string | null
   endItemSequence?: string | null
-  outcome?: unknown | null
+  outcome?: JsonValue | null
 }
 
 export type DialogueListQueryVariables = Exact<{
@@ -364,7 +365,7 @@ export type DialogueListQuery = {
         agentId: string
         agentVersion: string
         agentInstallationId: string
-        agentConfiguration: unknown
+        agentConfiguration: JsonValue
         status: string
         progress: string
         pendingCount: number
@@ -396,7 +397,7 @@ export type DialogueDetailsQuery = {
     agentId: string
     agentVersion: string
     agentInstallationId: string
-    agentConfiguration: unknown
+    agentConfiguration: JsonValue
     status: string
     progress: string
     pendingCount: number
@@ -434,7 +435,7 @@ export type DialogueHistoryQuery = {
         kind: string
         source: string
         text: string
-        payload?: unknown | null
+        payload?: JsonValue | null
         status: string
         version: string
         createdAt: string
@@ -459,7 +460,7 @@ export type DialogueItemQuery = {
     kind: string
     source: string
     text: string
-    payload?: unknown | null
+    payload?: JsonValue | null
     status: string
     version: string
     createdAt: string
@@ -488,7 +489,7 @@ export type DialogueTurnsQuery = {
         cancelRequested: boolean
         completedAt?: string | null
         endItemSequence?: string | null
-        outcome?: unknown | null
+        outcome?: JsonValue | null
       }
     }>
     pageInfo: { endCursor?: string | null; hasNextPage: boolean }
@@ -511,8 +512,8 @@ export type DialogueInteractionsQuery = {
         dialogueId: string
         turnId?: string | null
         status: string
-        request: unknown
-        response?: unknown | null
+        request: JsonValue
+        response?: JsonValue | null
         responseCommandId?: string | null
       }
     }>

@@ -1,15 +1,16 @@
 import type { CodegenConfig } from '@graphql-codegen/cli'
 
-const scalars = { DateTime: 'string', JSON: 'unknown' }
-
 function outputs(
   operations: string,
   generated: string,
+  jsonScalar = 'unknown',
+  typeImport?: string,
 ): CodegenConfig['generates'] {
   return {
     [`${generated}/graphql-request.ts`]: {
       documents: operations,
       plugins: [
+        ...(typeImport === undefined ? [] : [{ add: { content: typeImport } }]),
         'typescript',
         'typescript-operations',
         'typescript-graphql-request',
@@ -19,7 +20,7 @@ function outputs(
         skipTypename: true,
         onlyOperationTypes: true,
         useTypeImports: true,
-        scalars,
+        scalars: { DateTime: 'string', JSON: jsonScalar },
         documentMode: 'external',
         importDocumentNodeExternallyFrom: './typed-document-nodes',
       },
@@ -49,6 +50,8 @@ const config: CodegenConfig = {
     ...outputs(
       'src/modules/dialogue-engine/transport/graphql/*.graphql',
       'src/modules/dialogue-engine/transport/graphql/__generated__',
+      'JsonValue',
+      "import type { JsonValue } from '../../../contracts/dialogue.types.js';",
     ),
   },
 }
