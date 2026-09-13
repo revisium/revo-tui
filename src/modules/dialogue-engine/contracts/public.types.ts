@@ -1,4 +1,8 @@
-import type { JsonValue } from './dialogue.types.js'
+import type {
+  DialogueInteraction,
+  DialogueTurn,
+  JsonValue,
+} from './dialogue.types.js'
 
 export interface DialogueItemView {
   readonly id: string
@@ -61,8 +65,16 @@ export interface DialogueResourceView {
   readonly loading: boolean
   readonly error: string
   readonly history: DialogueHistoryResourceView
+  readonly turns: readonly DialogueTurn[]
+  readonly interactions: readonly DialogueInteraction[]
   start(): Promise<void>
   refresh(): Promise<void>
+}
+
+export interface DialogueLease {
+  readonly dialogue: DialogueResourceView
+  readonly ready: Promise<void>
+  release(): void
 }
 
 export interface DialogueListView {

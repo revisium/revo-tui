@@ -4,6 +4,7 @@ import type {
   DialogueReadBackend,
   HistoryPage,
 } from '../contracts/backend.types.js'
+import type { DialogueItem } from '../contracts/dialogue.types.js'
 import type { DialogueItemView } from '../contracts/public.types.js'
 import { DialogueError } from '../errors/DialogueError.js'
 import type { DialogueStore } from '../state/DialogueStore.js'
@@ -23,6 +24,7 @@ export class DialogueHistory {
   private observedSequence: string | null = null
   private readonly seenCursors = new Set<string>()
   private readyValue = false
+  private connectionError = ''
 
   public constructor(
     private readonly dialogueId: string,
@@ -78,10 +80,24 @@ export class DialogueHistory {
 
   public get error(): string {
     const error = this.pagination.error
-    if (error == null) return ''
+    if (error == null) return this.connectionError
     return error instanceof DialogueError
       ? error.message
       : errorMessageOf(error)
+  }
+
+  public include(item: DialogueItem): void {
+    const model = this.store.require(this.dialogueId)
+    model.validateItemIdentity(item)
+    runInAction(() => {
+      model.applyItem(item)
+      if (!this.itemIds.includes(item.id))
+        this.itemIds = Object.freeze([...this.itemIds, item.id])
+    })
+  }
+
+  public setConnectionError(error: string): void {
+    this.connectionError = error
   }
 
   public get observed(): string | null {
@@ -90,6 +106,10 @@ export class DialogueHistory {
 
   public get ready(): boolean {
     return this.readyValue
+  }
+
+  public get snapshotCursor(): string | undefined {
+    return this.snapshot
   }
 
   public refresh(): Promise<void> {

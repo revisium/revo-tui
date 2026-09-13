@@ -1,7 +1,9 @@
 import { makeAutoObservable, observable } from 'mobx'
 import type {
+  DialogueInteraction,
   DialogueItem,
   DialogueSummary,
+  DialogueTurn,
 } from '../contracts/dialogue.types.js'
 import type {
   DialogueSummaryView,
@@ -15,13 +17,20 @@ import { DialogueItemModel, validateItem } from './DialogueItemModel.js'
 export class DialogueModel {
   private summary: DialogueSummaryView
   private readonly items = observable.map<string, DialogueItemModel>()
+  private turnsValue: readonly DialogueTurn[] = []
+  private interactionsValue: readonly DialogueInteraction[] = []
 
   public constructor(summary: DialogueSummary) {
     validateSummary(summary)
     this.summary = summaryViewOf(summary)
-    makeAutoObservable<this, 'summary' | 'items'>(this, {
+    makeAutoObservable<
+      this,
+      'summary' | 'items' | 'turnsValue' | 'interactionsValue'
+    >(this, {
       summary: observable.ref,
       items: false,
+      turnsValue: observable.ref,
+      interactionsValue: observable.ref,
     })
   }
 
@@ -42,6 +51,32 @@ export class DialogueModel {
 
   public item(id: string): DialogueItemModel | undefined {
     return this.items.get(id)
+  }
+
+  public get turns(): readonly DialogueTurn[] {
+    return this.turnsValue
+  }
+
+  public get interactions(): readonly DialogueInteraction[] {
+    return this.interactionsValue
+  }
+
+  public replaceRelated(
+    turns: readonly DialogueTurn[],
+    interactions: readonly DialogueInteraction[],
+  ): void {
+    const nextTurns = unique(
+      turns.map((turn) => turnViewOf(turn, this.id)),
+      'turn',
+    )
+    const nextInteractions = unique(
+      interactions.map((interaction) =>
+        interactionViewOf(interaction, this.id),
+      ),
+      'interaction',
+    )
+    this.turnsValue = nextTurns
+    this.interactionsValue = nextInteractions
   }
 
   public applySummary(summary: DialogueSummary): boolean {
@@ -107,6 +142,42 @@ export class DialogueModel {
       )
     }
   }
+}
+
+function unique<T extends { readonly id: string }>(
+  values: readonly T[],
+  kind: string,
+): readonly T[] {
+  if (new Set(values.map(({ id }) => id)).size !== values.length) {
+    throw identityMismatch(`Dialogue ${kind} identity is duplicated.`)
+  }
+  return Object.freeze(values)
+}
+
+function turnViewOf(turn: DialogueTurn, dialogueId: string): DialogueTurn {
+  if (turn.id === '' || turn.dialogueId !== dialogueId)
+    throw identityMismatch('Dialogue turn identity is invalid.')
+  return Object.freeze({
+    ...turn,
+    ...(turn.outcome === undefined
+      ? {}
+      : { outcome: readonlyValue(turn.outcome) }),
+  })
+}
+
+function interactionViewOf(
+  interaction: DialogueInteraction,
+  dialogueId: string,
+): DialogueInteraction {
+  if (interaction.id === '' || interaction.dialogueId !== dialogueId)
+    throw identityMismatch('Dialogue interaction identity is invalid.')
+  return Object.freeze({
+    ...interaction,
+    request: readonlyValue(interaction.request),
+    ...(interaction.response === undefined
+      ? {}
+      : { response: readonlyValue(interaction.response) }),
+  })
 }
 
 export function validateSummary(summary: DialogueSummary): void {

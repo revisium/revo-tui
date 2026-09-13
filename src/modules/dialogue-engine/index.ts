@@ -29,6 +29,7 @@ export type {
 export type {
   DialogueItemView,
   DialogueHistoryResourceView,
+  DialogueLease,
   DialogueListView,
   DialogueResourceView,
   DialogueSummaryView,
@@ -36,6 +37,7 @@ export type {
   ProjectionResult,
 } from './contracts/public.types.js'
 export { DialogueCommands } from './commands/DialogueCommands.js'
+export { DialogueEngine } from './engine/DialogueEngine.js'
 export { DialogueError } from './errors/DialogueError.js'
 export type {
   DialogueErrorCode,
