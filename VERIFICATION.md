@@ -9,8 +9,12 @@ bash -n scripts/sonar-issues-local.sh
 git diff --check
 ```
 
-Before `src/` exists, `verify:sources` reports source gates as N/A. Once `src/` is present it requires strict TypeScript, Steiger, and the build script; a missing build script fails verification. Formatting and zero-warning ESLint always run. GraphQL codegen is N/A until the first GraphQL change.
+`verify:sources` requires strict TypeScript, Steiger, and a launcher build. Formatting and zero-warning ESLint always run. GraphQL codegen is N/A until the first GraphQL change.
 
-CI scans the exact checked-out revision, waits for the Sonar quality gate, verifies the analyzed revision, and fails on open issues. Sonar credentials are required in CI and must never be printed or committed. Coverage is not excluded locally; the repository's dedicated no-coverage quality gate is managed outside this repository.
+CI scans the exact checked-out revision, waits for the Sonar quality gate, verifies the analyzed revision, and fails on open issues. Sonar credentials are required in CI and must never be printed or committed. Coverage is excluded while the TUI intentionally has no automated tests; bugs, vulnerabilities, smells, and duplication remain analyzed.
 
 Runtime behavior is checked manually for each implementation task in a dedicated lab. Do not add an automated TUI test suite.
+
+## Manual launcher checks
+
+Verify help and version without a TTY, input errors with exit code 2, package-local Bun and missing UI diagnostics, child exit propagation, signal and abort handling, and terminal restoration against the captured `stty -g` state. Record runtime versions, OS, architecture, and observations outside the product repository. Linux validation does not replace the required macOS manual launcher check.

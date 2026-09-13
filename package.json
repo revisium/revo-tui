@@ -5,7 +5,17 @@
   "description": "Terminal client for Revo.",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "revo-tui": "bin/revo-tui.js"
+  },
+  "exports": {
+    "./launcher": {
+      "types": "./dist/launcher/index.d.ts",
+      "import": "./dist/launcher/index.js"
+    }
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.launcher.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
@@ -15,9 +25,13 @@
     "verify": "pnpm format:check && pnpm lint && pnpm verify:sources",
     "sonar:issues:local": "bash scripts/sonar-issues-local.sh"
   },
+  "dependencies": {
+    "bun": "1.4.2"
+  },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@feature-sliced/steiger-plugin": "0.5.8",
+    "@types/node": "26.1.2",
     "eslint": "10.5.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-sonarjs": "4.1.0",
