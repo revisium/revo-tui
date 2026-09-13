@@ -1,4 +1,5 @@
 import js from '@eslint/js'
+import eslintReact from '@eslint-react/eslint-plugin'
 import prettier from 'eslint-config-prettier'
 import sonarjs from 'eslint-plugin-sonarjs'
 import globals from 'globals'
@@ -18,6 +19,7 @@ export default [
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  eslintReact.configs['recommended-typescript'],
   sonarjs.configs.recommended,
   prettier,
   {

@@ -15,23 +15,35 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.launcher.json",
+    "build": "pnpm build:launcher && pnpm build:ui",
+    "build:launcher": "tsc -p tsconfig.launcher.json",
+    "build:ui": "pnpm exec bun build src/app/main.tsx --target bun --packages external --outfile dist/ui/main.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm typecheck:launcher && pnpm typecheck:ui",
+    "typecheck:launcher": "tsc -p tsconfig.launcher.json --noEmit",
+    "typecheck:ui": "tsc -p tsconfig.ui.json --noEmit",
     "fsd:check": "steiger src",
     "verify:sources": "if [ -d src ]; then pnpm typecheck && pnpm fsd:check && pnpm build; else echo 'Source gates: N/A (src directory is not present)'; fi",
     "verify": "pnpm format:check && pnpm lint && pnpm verify:sources",
     "sonar:issues:local": "bash scripts/sonar-issues-local.sh"
   },
   "dependencies": {
-    "bun": "1.4.2"
+    "@opentui/core": "0.5.11",
+    "@opentui/react": "0.5.11",
+    "bun": "1.4.2",
+    "mobx": "6.16.1",
+    "mobx-react-lite": "4.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@feature-sliced/steiger-plugin": "0.5.8",
+    "@eslint-react/eslint-plugin": "3.0.0",
     "@types/node": "26.1.2",
+    "@types/react": "19.3.0",
     "eslint": "10.5.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-sonarjs": "4.1.0",

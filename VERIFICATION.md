@@ -18,3 +18,7 @@ Runtime behavior is checked manually for each implementation task in a dedicated
 ## Manual launcher checks
 
 Verify help and version without a TTY, input errors with exit code 2, package-local Bun and missing UI diagnostics, child exit propagation, signal and abort handling, and terminal restoration against the captured `stty -g` state. Record runtime versions, OS, architecture, and observations outside the product repository. Linux validation does not replace the required macOS manual launcher check.
+
+## Manual composition checks
+
+Verify the real OpenTUI renderer in a PTY: initial not-connected status, help visibility, resize, keyboard and signal exits, and terminal restoration. Exercise renderer startup and asynchronous render failures in a disposable lab, confirming that the React root unmounts before the renderer is destroyed and each transient ViewModel is disposed once. Record evidence outside the product repository. Linux validation does not replace the required macOS renderer check.
