@@ -28,18 +28,13 @@ export const App = observer(function App({ createModel }: AppProps) {
       ) : (
         <box flexDirection="column" gap={1}>
           <text fg="#77bdfb">Compose dialogue</text>
-          <input
-            focused={viewModel.compose.focus === 'title'}
-            placeholder="Title (optional)"
-            value={viewModel.compose.title}
-            onInput={viewModel.compose.setTitle}
-          />
           <AgentSelector model={viewModel.compose.selection} />
           <input
             focused={viewModel.compose.focus === 'prompt'}
             placeholder="First prompt"
             value={viewModel.compose.prompt}
             onInput={viewModel.compose.setPrompt}
+            onSubmit={() => viewModel.compose.submit().catch(() => undefined)}
           />
           {viewModel.compose.busy ? <text>Creating and sending…</text> : null}
           {viewModel.compose.error ? (

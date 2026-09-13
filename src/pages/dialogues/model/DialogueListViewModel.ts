@@ -1,8 +1,9 @@
-import { makeAutoObservable } from 'mobx'
+import { makeAutoObservable, reaction } from 'mobx'
 import type { DialogueEngine } from '../../../modules/dialogue-engine/index.js'
 
 export class DialogueListViewModel {
   public selectedId: string | undefined
+  private stopItemsReaction: (() => void) | undefined
   public constructor(private readonly engine: DialogueEngine) {
     makeAutoObservable(this, {}, { autoBind: true })
   }
@@ -11,8 +12,19 @@ export class DialogueListViewModel {
   }
   public mount(): void {
     this.selectedId ??= this.list.items[0]?.id
+    this.stopItemsReaction = reaction(
+      () => this.list.items.map((item) => item.id),
+      (ids) => {
+        if (this.selectedId !== undefined && ids.includes(this.selectedId))
+          return
+        this.selectedId = ids[0]
+      },
+    )
   }
-  public dispose(): void {}
+  public dispose(): void {
+    this.stopItemsReaction?.()
+    this.stopItemsReaction = undefined
+  }
   public move(delta: number): void {
     const ids = this.list.items.map((item) => item.id)
     if (!ids.length) return

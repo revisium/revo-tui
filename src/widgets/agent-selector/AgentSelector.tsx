@@ -1,15 +1,8 @@
-import { useKeyboard } from '@opentui/react'
 import type { AgentSelectionModel } from '../../entities/agent/index.js'
 export interface AgentSelectorProps {
   readonly model: AgentSelectionModel
 }
 export function AgentSelector({ model }: AgentSelectorProps) {
-  useKeyboard((key) => {
-    if (key.name === 'up') model.selectNext(-1)
-    if (key.name === 'down') model.selectNext(1)
-    if (key.name === 'left') model.selectNextOption(-1)
-    if (key.name === 'right') model.selectNextOption(1)
-  })
   if (model.loading) return <text>Loading agents…</text>
   if (model.error) return <text fg="#ff7777">{model.error}</text>
   if (!model.agents.length) return <text>No agents available.</text>

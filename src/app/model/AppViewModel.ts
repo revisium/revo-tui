@@ -106,18 +106,31 @@ export class AppViewModel {
       return true
     }
     if (name === 'enter') {
+      if (this.compose.focus === 'prompt') return true
       this.compose.submit().catch(this.showError)
       return true
     }
     if (name === 'tab') {
-      this.compose.focus = this.compose.focus === 'prompt' ? 'title' : 'prompt'
+      this.compose.focus =
+        this.compose.focus === 'prompt' ? 'controls' : 'prompt'
       return true
     }
-    if (name === 'y') {
+    if (
+      this.compose.focus === 'controls' &&
+      (name === 'up' ||
+        name === 'down' ||
+        name === 'left' ||
+        name === 'right' ||
+        name === 'space')
+    ) {
+      this.compose.handleControlKey(name)
+      return true
+    }
+    if (this.compose.focus === 'controls' && name === 'y') {
       this.compose.retrySend().catch(this.showError)
       return true
     }
-    if (name === 'x') {
+    if (this.compose.focus === 'controls' && name === 'x') {
       this.compose.reset()
       return true
     }

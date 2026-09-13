@@ -24,6 +24,7 @@ export class AgentSelectionModel {
   private selectedRevision = ''
   private readonly selections = new Map<string, string | boolean>()
   private invalidationMessage = ''
+  private optionIndex = 0
   private stopCatalogReaction: (() => void) | undefined
 
   public constructor(private readonly service: AgentConfigurationsService) {
@@ -125,6 +126,7 @@ export class AgentSelectionModel {
     }
     this.selectedIdentity = identity
     this.selectedRevision = catalog.catalogRevision
+    this.optionIndex = 0
     this.invalidationMessage = ''
   }
 
@@ -140,19 +142,28 @@ export class AgentSelectionModel {
   }
 
   public selectNextOption(delta: number): void {
-    const current = this.options[0]
-    if (current === undefined || current.option.kind !== 'select') return
-    const values = current.option.values
+    const options = this.options
+    if (!options.length) return
+    this.optionIndex = Math.min(
+      options.length - 1,
+      Math.max(0, this.optionIndex + delta),
+    )
+  }
+
+  public cycleSelectedOption(): void {
+    const current = this.options[this.optionIndex]
+    if (current === undefined) return
+    const values =
+      current.option.kind === 'boolean'
+        ? [false, true]
+        : current.option.values.map((value) => value.value)
+    const currentValue = current.override ?? current.option.currentValue
     const index = Math.max(
       0,
-      values.findIndex(
-        (value) =>
-          value.value === current.override ||
-          value.value === current.option.currentValue,
-      ),
+      values.findIndex((value) => value === currentValue),
     )
-    const next = values[Math.min(values.length - 1, Math.max(0, index + delta))]
-    if (next !== undefined) this.selectOption(current.option.id, next.value)
+    const next = values[(index + 1) % values.length]
+    if (next !== undefined) this.selectOption(current.option.id, next)
   }
 
   public selectOption(id: string, value: string | boolean): void {
