@@ -14,5 +14,5 @@
     "target": "ES2024",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "steiger.config.ts"]
+  "include": ["src/launcher/**/*.ts", "steiger.config.ts"]
 }

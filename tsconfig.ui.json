@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "@opentui/react",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node", "react"]
+  },
+  "include": [
+    "src/app/**/*.ts",
+    "src/app/**/*.tsx",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx"
+  ]
+}
