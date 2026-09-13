@@ -128,6 +128,33 @@ export class AgentSelectionModel {
     this.invalidationMessage = ''
   }
 
+  public selectNext(delta: number): void {
+    const agents = this.agents
+    if (!agents.length) return
+    const index = Math.max(
+      0,
+      agents.findIndex((agent) => agent.identity === this.selectedIdentity),
+    )
+    const next = agents[Math.min(agents.length - 1, Math.max(0, index + delta))]
+    if (next !== undefined) this.selectAgent(next.identity)
+  }
+
+  public selectNextOption(delta: number): void {
+    const current = this.options[0]
+    if (current === undefined || current.option.kind !== 'select') return
+    const values = current.option.values
+    const index = Math.max(
+      0,
+      values.findIndex(
+        (value) =>
+          value.value === current.override ||
+          value.value === current.option.currentValue,
+      ),
+    )
+    const next = values[Math.min(values.length - 1, Math.max(0, index + delta))]
+    if (next !== undefined) this.selectOption(current.option.id, next.value)
+  }
+
   public selectOption(id: string, value: string | boolean): void {
     const selection = this.options.find(
       (candidate) => candidate.option.id === id,

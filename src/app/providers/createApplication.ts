@@ -6,7 +6,10 @@ import {
   DialogueEngine,
   GraphqlDialogueBackend,
 } from '../../modules/dialogue-engine/index.js'
-import { AgentConfigurationsService, GraphqlAgentConfigurationsTransport } from '../../modules/agent-configurations/index.js'
+import {
+  AgentConfigurationsService,
+  GraphqlAgentConfigurationsTransport,
+} from '../../modules/agent-configurations/index.js'
 import { FileCommandStorage } from '../adapters/command-storage/FileCommandStorage.js'
 import {
   AppViewModel,
@@ -79,7 +82,10 @@ export function createApplication(
     () => {
       const subscriptions = container.get(GraphqlSubscriptions)
       const transportOptions = { endpoint: endpoints.request }
-      return new GraphqlAgentConfigurationsTransport(transportOptions, subscriptions)
+      return new GraphqlAgentConfigurationsTransport(
+        transportOptions,
+        subscriptions,
+      )
     },
     'singleton',
   )

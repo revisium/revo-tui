@@ -20,17 +20,55 @@ export const App = observer(function App({ createModel }: AppProps) {
       <text fg="#77bdfb">{viewModel.clientName}</text>
       <text>{viewModel.connectionStatus}</text>
       <text fg="#8a8a8a">API: {viewModel.endpointLabel}</text>
-      {viewModel.route === 'list' ? <DialogueList model={viewModel.dialogues.list} selectedId={viewModel.dialogues.selectedId} /> : <box flexDirection="column" gap={1}>
-        <text fg="#77bdfb">Compose dialogue</text>
-        <input placeholder="Title (optional)" value={viewModel.compose.title} onInput={viewModel.compose.setTitle} />
-        <AgentSelector model={viewModel.compose.selection} />
-        <input placeholder="First prompt" value={viewModel.compose.prompt} onInput={viewModel.compose.setPrompt} />
-        {viewModel.compose.busy ? <text>Creating and sending…</text> : null}
-        {viewModel.compose.error ? <text fg="#ff7777">{viewModel.compose.error}</text> : null}
-      </box>}
+      {viewModel.route === 'list' ? (
+        <DialogueList
+          model={viewModel.dialogues.list}
+          selectedId={viewModel.dialogues.selectedId}
+        />
+      ) : (
+        <box flexDirection="column" gap={1}>
+          <text fg="#77bdfb">Compose dialogue</text>
+          <input
+            focused={viewModel.compose.focus === 'title'}
+            placeholder="Title (optional)"
+            value={viewModel.compose.title}
+            onInput={viewModel.compose.setTitle}
+          />
+          <AgentSelector model={viewModel.compose.selection} />
+          <input
+            focused={viewModel.compose.focus === 'prompt'}
+            placeholder="First prompt"
+            value={viewModel.compose.prompt}
+            onInput={viewModel.compose.setPrompt}
+          />
+          {viewModel.compose.busy ? <text>Creating and sending…</text> : null}
+          {viewModel.compose.error ? (
+            <text fg="#ff7777">{viewModel.compose.error}</text>
+          ) : null}
+          {viewModel.compose.pendingCommandId || viewModel.compose.uncertain ? (
+            <text>
+              Delivery uncertain. Press y to retry exact prompt, x to reset.
+            </text>
+          ) : null}
+        </box>
+      )}
       <KeyboardHelp
         expanded={viewModel.helpVisible}
-        hints={viewModel.route === 'list' ? [...viewModel.keyboardHints, 'n  New dialogue', '↑/↓  Select', 'r  Refresh', 'm  More'] : ['Enter  Create and send', 'Escape  Back to list', 'Tab  Focus fields']}
+        hints={
+          viewModel.route === 'list'
+            ? [
+                ...viewModel.keyboardHints,
+                'n  New dialogue',
+                '↑/↓  Select',
+                'r  Refresh',
+                'm  More',
+              ]
+            : [
+                'Enter  Create and send',
+                'Escape  Back to list',
+                'Tab  Focus fields',
+              ]
+        }
       />
     </box>
   )

@@ -1,5 +1,9 @@
 import { makeAutoObservable } from 'mobx'
-import type { DialogueActions, DialogueCommands, DialogueEngine } from '../../modules/dialogue-engine/index.js'
+import type {
+  DialogueActions,
+  DialogueCommands,
+  DialogueEngine,
+} from '../../modules/dialogue-engine/index.js'
 import type { AgentConfigurationsService } from '../../modules/agent-configurations/index.js'
 import { ComposeViewModel } from '../../pages/compose/index.js'
 import { DialogueListViewModel } from '../../pages/dialogues/index.js'
@@ -35,10 +39,16 @@ export class AppViewModel {
     this.#requestExit = requestExit
     const engine = options.engine
     this.dialogues = new DialogueListViewModel(engine)
-    this.compose = new ComposeViewModel(options.agentConfigurations, options.actions, options.commands, (id) => {
-      this.dialogues.selectedId = id
-      this.route = 'list'
-    })
+    this.compose = new ComposeViewModel(
+      options.agentConfigurations,
+      options.actions,
+      options.commands,
+      (id) => {
+        this.dialogues.selectedId = id
+        this.compose.dispose()
+        this.route = 'list'
+      },
+    )
     makeAutoObservable(this)
   }
 
@@ -77,19 +87,8 @@ export class AppViewModel {
   }
 
   public handleKey(name: string, ctrl: boolean): void {
-    if (this.route === 'compose') {
-      if (name === 'escape') { this.route = 'list'; return }
-      if (name === 'enter') { void this.compose.submit(); return }
-      if (name === 'tab') { this.compose.focus = this.compose.focus === 'prompt' ? 'title' : 'prompt'; return }
-      if (name === 'q' || name === 'h' || name === '?') return
-    }
-    if (this.route === 'list') {
-      if (name === 'n') { this.route = 'compose'; return }
-      if (name === 'up') { this.dialogues.move(-1); return }
-      if (name === 'down') { this.dialogues.move(1); return }
-      if (name === 'r') { void this.dialogues.refresh(); return }
-      if (name === 'm') { void this.dialogues.loadMore(); return }
-    }
+    if (this.route === 'compose' && this.handleComposeKey(name)) return
+    if (this.route === 'list' && this.handleListKey(name)) return
     if (name === '?' || name === 'h') {
       this.helpVisible = !this.helpVisible
       return
@@ -98,5 +97,62 @@ export class AppViewModel {
     if (name === 'q' || name === 'escape' || (ctrl && name === 'c')) {
       this.#requestExit()
     }
+  }
+
+  private handleComposeKey(name: string): boolean {
+    if (name === 'escape') {
+      this.compose.dispose()
+      this.route = 'list'
+      return true
+    }
+    if (name === 'enter') {
+      this.compose.submit().catch(this.showError)
+      return true
+    }
+    if (name === 'tab') {
+      this.compose.focus = this.compose.focus === 'prompt' ? 'title' : 'prompt'
+      return true
+    }
+    if (name === 'y') {
+      this.compose.retrySend().catch(this.showError)
+      return true
+    }
+    if (name === 'x') {
+      this.compose.reset()
+      return true
+    }
+    return name === 'q' || name === 'h' || name === '?'
+  }
+
+  private handleListKey(name: string): boolean {
+    if (name === 'n') {
+      this.compose.reset()
+      this.compose.mount()
+      this.route = 'compose'
+      return true
+    }
+    if (name === 'up') {
+      this.dialogues.move(-1)
+      return true
+    }
+    if (name === 'down') {
+      this.dialogues.move(1)
+      return true
+    }
+    if (name === 'r') {
+      this.dialogues.refresh().catch(this.showError)
+      return true
+    }
+    if (name === 'm') {
+      this.dialogues.loadMore().catch(this.showError)
+      return true
+    }
+    return false
+  }
+
+  private showError = (error: unknown): void => {
+    if (this.route === 'compose')
+      this.compose.error =
+        error instanceof Error ? error.message : 'Request failed.'
   }
 }

@@ -1,7 +1,13 @@
 import { makeAutoObservable } from 'mobx'
-import type { DialogueActions, DialogueCommands } from '../../../modules/dialogue-engine/index.js'
+import type {
+  DialogueActions,
+  DialogueCommands,
+} from '../../../modules/dialogue-engine/index.js'
 import type { AgentConfigurationsService } from '../../../modules/agent-configurations/index.js'
 import { AgentSelectionModel } from '../../../entities/agent/index.js'
+import { DialogueError } from '../../../modules/dialogue-engine/index.js'
+
+const TITLE_LIMIT = 80
 
 export class ComposeViewModel {
   public title = ''
@@ -10,6 +16,8 @@ export class ComposeViewModel {
   public busy = false
   public error = ''
   public createdId: string | undefined
+  public uncertain = false
+  public pendingCommandId: string | undefined
   public readonly selection: AgentSelectionModel
   public constructor(
     service: AgentConfigurationsService,
@@ -20,12 +28,52 @@ export class ComposeViewModel {
     this.selection = new AgentSelectionModel(service)
     makeAutoObservable(this, {}, { autoBind: true })
   }
-  public mount(): void { this.selection.start() }
-  public dispose(): void { this.selection.dispose() }
-  public setTitle(value: string): void { this.title = value }
-  public setPrompt(value: string): void { this.prompt = value }
+  public mount(): void {
+    this.selection.start()
+  }
+  public dispose(): void {
+    this.selection.dispose()
+  }
+  public setTitle(value: string): void {
+    this.title = value
+  }
+  public setPrompt(value: string): void {
+    this.prompt = value
+  }
+  public reset(): void {
+    this.title = ''
+    this.prompt = ''
+    this.error = ''
+    this.createdId = undefined
+    this.pendingCommandId = undefined
+    this.uncertain = false
+  }
+  public async retrySend(): Promise<void> {
+    if (
+      this.busy ||
+      this.pendingCommandId === undefined ||
+      this.createdId === undefined
+    )
+      return
+    this.busy = true
+    try {
+      await this.commands.retrySend(this.pendingCommandId)
+      this.onCreated(this.createdId)
+    } catch (error) {
+      this.error =
+        error instanceof Error ? error.message : 'Unable to send prompt.'
+    } finally {
+      this.busy = false
+    }
+  }
   public async submit(): Promise<void> {
-    if (this.busy || this.prompt.trim() === '' || this.createdId !== undefined) return
+    if (
+      this.busy ||
+      this.prompt.trim() === '' ||
+      this.createdId !== undefined ||
+      this.uncertain
+    )
+      return
     this.error = ''
     this.busy = true
     try {
@@ -33,8 +81,9 @@ export class ComposeViewModel {
       if (!agent) throw new Error('Choose an agent configuration first.')
       const configuration = this.selection.configuration
       const resource = await this.actions.create({
-        title: this.title.trim() || this.prompt.trim().slice(0, 80),
-        agentId: agent.id, agentVersion: agent.version,
+        title: this.title.trim() || this.prompt.trim().slice(0, TITLE_LIMIT),
+        agentId: agent.id,
+        agentVersion: agent.version,
         agentInstallationId: agent.installationId,
         agentConfiguration: configuration.selections,
       })
@@ -42,13 +91,25 @@ export class ComposeViewModel {
       try {
         await this.commands.send(resource.id, this.prompt)
       } catch (error) {
-        const pending = this.commands.pending.find((command) => command.kind === 'message' && command.dialogueId === resource.id)
-        if (pending?.kind === 'message') await this.commands.retrySend(pending.commandId)
-        else throw error
+        const pending = this.commands.pending.find(
+          (command) =>
+            command.kind === 'message' && command.dialogueId === resource.id,
+        )
+        if (pending?.kind === 'message')
+          this.pendingCommandId = pending.commandId
+        if (
+          error instanceof DialogueError &&
+          error.message.includes('may have completed')
+        )
+          this.uncertain = true
+        throw error
       }
       this.onCreated(resource.id)
     } catch (error) {
-      this.error = error instanceof Error ? error.message : 'Unable to create dialogue.'
-    } finally { this.busy = false }
+      this.error =
+        error instanceof Error ? error.message : 'Unable to create dialogue.'
+    } finally {
+      this.busy = false
+    }
   }
 }
