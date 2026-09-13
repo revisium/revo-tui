@@ -240,9 +240,8 @@ function endpointNamespace(endpoint: string): string {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new TypeError('Command storage endpoint must use HTTP or HTTPS.')
   }
-  return createHash('sha256')
-    .update(`${url.protocol}//${url.host}${url.pathname}`)
-    .digest('hex')
+  url.hash = ''
+  return createHash('sha256').update(url.href).digest('hex')
 }
 
 function storageErrorOf(
