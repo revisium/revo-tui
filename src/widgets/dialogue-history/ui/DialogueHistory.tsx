@@ -10,7 +10,7 @@ export const DialogueHistory = observer(function DialogueHistory({
   if (history.loading && history.items.length === 0)
     return <text>Loading history…</text>
   return (
-    <box flexDirection="column">
+    <scrollbox flexGrow={1} scrollY stickyScroll stickyStart="bottom">
       {history.error ? <text fg="#ff7777">{history.error}</text> : null}
       {history.items.length === 0 ? (
         <text>No messages yet.</text>
@@ -21,7 +21,13 @@ export const DialogueHistory = observer(function DialogueHistory({
           </text>
         ))
       )}
-      {history.hasMore ? <text>Press o for older messages</text> : null}
-    </box>
+      {history.hasMore ? (
+        <text>
+          {history.loading
+            ? 'Loading older messages…'
+            : 'Press o for older messages'}
+        </text>
+      ) : null}
+    </scrollbox>
   )
 }) as (props: DialogueHistoryProps) => ReactElement
