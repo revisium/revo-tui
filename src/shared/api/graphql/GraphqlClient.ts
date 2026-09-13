@@ -10,12 +10,12 @@ import type {
 
 export class GraphqlClient {
   readonly #transport: TransportClient
-  readonly #headers: GraphqlHeaders
+  readonly #headers: Headers
 
   public constructor(endpoint: string, headers: GraphqlHeaders = {}) {
     this.assertEndpoint(endpoint)
     this.#transport = new TransportClient(endpoint)
-    this.#headers = Object.freeze({ ...headers })
+    this.#headers = new Headers(headers)
   }
 
   public request<T, V extends Variables = Variables>(
@@ -23,7 +23,7 @@ export class GraphqlClient {
     variables?: V,
     options: GraphqlRequestOptions = {},
   ): Promise<T> {
-    const requestHeaders = { ...this.#headers, ...options.headers }
+    const requestHeaders = this.mergeHeaders(options.headers)
 
     return this.#transport.request<T>({
       document,
@@ -31,6 +31,16 @@ export class GraphqlClient {
       requestHeaders,
       signal: options.signal,
     })
+  }
+
+  private mergeHeaders(headers: GraphqlHeaders | undefined): Headers {
+    const mergedHeaders = new Headers(this.#headers)
+
+    for (const [name, value] of Object.entries(headers ?? {})) {
+      mergedHeaders.set(name, value)
+    }
+
+    return mergedHeaders
   }
 
   private assertEndpoint(endpoint: string): void {

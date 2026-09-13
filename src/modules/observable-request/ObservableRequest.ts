@@ -59,9 +59,7 @@ export class ObservableRequest<T, Args extends unknown[] = []> {
     return this.loaded
   }
 
-  public async fetch(
-    ...args: Args
-  ): Promise<Either<unknown | RequestAbortError, T>> {
+  public async fetch(...args: Args): Promise<Either<unknown, T>> {
     const attempt = this.beginAttempt()
 
     try {
