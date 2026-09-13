@@ -28,13 +28,14 @@ SONAR_EXPECTED_REVISION="${SONAR_EXPECTED_REVISION:-$(git rev-parse HEAD)}"
 scope_args=()
 scope_kind="branch"
 scope_value=""
+SONAR_PR_SCOPE="pullRequest"
 
 if [[ -n "${SONAR_PR_KEY:-}" ]]; then
-  scope_kind="pullRequest"
+  scope_kind="$SONAR_PR_SCOPE"
   scope_value="$SONAR_PR_KEY"
 elif [[ "${GITHUB_EVENT_NAME:-}" == pull_request* && -f "${GITHUB_EVENT_PATH:-}" ]]; then
   scope_value="$(node -e "const fs = require('node:fs'); console.log(JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')).pull_request.number)")"
-  scope_kind="pullRequest"
+  scope_kind="$SONAR_PR_SCOPE"
 elif [[ -n "${SONAR_BRANCH_NAME:-}" ]]; then
   scope_value="$SONAR_BRANCH_NAME"
 else
@@ -42,7 +43,7 @@ else
 fi
 scope_args+=(--data-urlencode "${scope_kind}=${scope_value}")
 
-if [[ "$scope_kind" == "pullRequest" ]]; then
+if [[ "$scope_kind" == "$SONAR_PR_SCOPE" ]]; then
   analysis_query_args=(
     --get "${SONAR_HOST_URL}/api/project_pull_requests/list"
     --data-urlencode "project=${PROJECT_KEY}"
@@ -61,7 +62,7 @@ if ! analysis_response="$(curl -fsS -u "${SONAR_TOKEN}:" "${analysis_query_args[
   exit 1
 fi
 
-if [[ "$scope_kind" == "pullRequest" ]]; then
+if [[ "$scope_kind" == "$SONAR_PR_SCOPE" ]]; then
   node -e '
 const payload = JSON.parse(process.argv[1]);
 const key = process.argv[2];
