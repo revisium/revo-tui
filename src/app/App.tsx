@@ -43,5 +43,11 @@ function keyboardHintsFor(model: AppViewModel): readonly string[] {
       'Escape  Back to list',
       'Tab  Focus fields',
     ]
-  return ['Escape back', 'Tab prompt/controls', 'r retry  c cancel  o older']
+  return [
+    'Escape back',
+    'Tab prompt/controls',
+    'r retry  c cancel  o older',
+    'PgUp/PgDn  Scroll history (controls)',
+    'End  Follow latest (controls)',
+  ]
 }
