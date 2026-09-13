@@ -40,7 +40,10 @@ export class QuestionViewModel {
   }
 
   public get customOtherActive(): boolean {
-    return this.otherActive
+    const question = this.question
+    return (
+      this.otherActive && question?.input === 'select' && question.allowOther
+    )
   }
 
   public get value(): JsonValue | undefined {
