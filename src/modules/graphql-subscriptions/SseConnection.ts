@@ -123,7 +123,16 @@ export class SseConnection {
     }
 
     this.clearConnectTimer()
-    this.invoke(this.#onConnected)
+    try {
+      this.#onConnected()
+    } catch {
+      this.terminate(
+        new SubscriptionError(
+          'protocol',
+          'The subscription connection callback failed.',
+        ),
+      )
+    }
   }
 
   private readonly fetch = async (
@@ -171,7 +180,17 @@ export class SseConnection {
       return
     }
 
-    this.invoke(() => operation.sink.next(result.data))
+    try {
+      operation.sink.next(result.data)
+    } catch {
+      this.operationError(
+        operation,
+        new SubscriptionError(
+          'protocol',
+          'The subscription consumer could not process an event.',
+        ),
+      )
+    }
   }
 
   private operationError(operation: OwnedOperation, error: unknown): void {
@@ -195,7 +214,7 @@ export class SseConnection {
 
     if (!this.#disposed && !operation.cancelled && !operation.notified) {
       operation.notified = true
-      this.invoke(() => operation.sink.error(typedError))
+      this.invokeSafely(() => operation.sink.error(typedError))
     }
   }
 
@@ -206,7 +225,7 @@ export class SseConnection {
 
     this.release(operation)
     operation.notified = true
-    this.invoke(operation.sink.complete)
+    this.invokeSafely(operation.sink.complete)
   }
 
   private cancel(operation: OwnedOperation): void {
@@ -220,7 +239,7 @@ export class SseConnection {
       operation.libraryDispose?.()
     }
     operation.notified = true
-    this.invoke(operation.sink.complete)
+    this.invokeSafely(operation.sink.complete)
   }
 
   private release(operation: OwnedOperation): void {
@@ -246,7 +265,7 @@ export class SseConnection {
     }
 
     this.#client?.dispose()
-    this.invoke(() => this.#onTerminalError(error))
+    this.invokeSafely(() => this.#onTerminalError(error))
   }
 
   private async cleanupOperation(
@@ -288,7 +307,7 @@ export class SseConnection {
     this.#connectTimer = undefined
   }
 
-  private invoke(callback: () => void): void {
+  private invokeSafely(callback: () => void): void {
     try {
       callback()
     } catch {
