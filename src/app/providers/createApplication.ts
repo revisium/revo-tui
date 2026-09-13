@@ -51,10 +51,14 @@ export function createApplication(
 
 function subscriptionEndpoint(apiUrl: string): string {
   const endpoint = new URL(apiUrl)
-  endpoint.username = ''
-  endpoint.password = ''
-  endpoint.search = ''
+  if (endpoint.username !== '' || endpoint.password !== '') {
+    throw new TypeError('API URL credentials are not supported.')
+  }
   endpoint.hash = ''
-  endpoint.pathname = `${endpoint.pathname.replace(/\/$/, '')}/graphql/stream`
+  let path = endpoint.pathname
+  while (path.endsWith('/')) path = path.slice(0, -1)
+  endpoint.pathname = path.endsWith('/graphql')
+    ? `${path}/stream`
+    : `${path}/graphql/stream`
   return endpoint.toString()
 }

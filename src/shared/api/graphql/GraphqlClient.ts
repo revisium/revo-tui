@@ -13,8 +13,7 @@ export class GraphqlClient {
   readonly #headers: Headers
 
   public constructor(endpoint: string, headers: GraphqlHeaders = {}) {
-    this.assertEndpoint(endpoint)
-    this.#transport = new TransportClient(endpoint)
+    this.#transport = new TransportClient(this.validateEndpoint(endpoint))
     this.#headers = new Headers(headers)
   }
 
@@ -43,7 +42,7 @@ export class GraphqlClient {
     return mergedHeaders
   }
 
-  private assertEndpoint(endpoint: string): void {
+  private validateEndpoint(endpoint: string): string {
     let url: URL
 
     try {
@@ -52,14 +51,20 @@ export class GraphqlClient {
       throw this.invalidEndpoint()
     }
 
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    if (
+      (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+      url.username !== '' ||
+      url.password !== ''
+    ) {
       throw this.invalidEndpoint()
     }
+    url.hash = ''
+    return url.toString()
   }
 
   private invalidEndpoint(): TypeError {
     return new TypeError(
-      'GraphQL endpoint must be an absolute HTTP or HTTPS URL.',
+      'GraphQL endpoint must be absolute HTTP or HTTPS without embedded credentials.',
     )
   }
 }
