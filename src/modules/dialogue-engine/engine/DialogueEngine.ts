@@ -2,6 +2,7 @@ import type { DialogueBackend } from '../contracts/backend.types.js'
 import type {
   DialogueLease,
   DialogueListView,
+  DialogueResourceView,
 } from '../contracts/public.types.js'
 import { DialogueLifecycle } from '../lifecycle/DialogueLifecycle.js'
 import { DialogueList } from '../resources/DialogueList.js'
@@ -9,7 +10,6 @@ import { DialogueStore } from '../state/DialogueStore.js'
 import { DialogueSynchronization } from '../synchronization/DialogueSynchronization.js'
 import type { DialogueCommands } from '../commands/DialogueCommands.js'
 import type { DialogueSummary } from '../contracts/dialogue.types.js'
-import type { DialogueResourceView } from '../contracts/public.types.js'
 
 export class DialogueEngine {
   public readonly list: DialogueListView
