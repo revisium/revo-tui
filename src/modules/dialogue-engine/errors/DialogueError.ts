@@ -1,5 +1,7 @@
 export type DialogueErrorCode =
   | 'access-denied'
+  | 'command-conflict'
+  | 'command-unavailable'
   | 'graphql-execution'
   | 'identity-mismatch'
   | 'invalid-change'
