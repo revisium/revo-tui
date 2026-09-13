@@ -7,6 +7,12 @@ export type {
   JsonPrimitive,
   JsonValue,
 } from './contracts/dialogue.types.js'
+export type {
+  DialogueInputValues,
+  DialogueInteractionDefinition,
+  DialogueOption,
+  DialogueQuestion,
+} from './contracts/interaction.types.js'
 export type { Page, SnapshotPage } from './contracts/page.types.js'
 export type {
   DialogueReadBackend,
@@ -29,6 +35,7 @@ export type {
 export type {
   DialogueItemView,
   DialogueHistoryResourceView,
+  DialogueInteractionSessionView,
   DialogueLease,
   DialogueListView,
   DialogueResourceView,
@@ -45,6 +52,7 @@ export type {
 } from './errors/DialogueError.js'
 export { DialogueProjection } from './projection/DialogueProjection.js'
 export { DialogueHistory } from './resources/DialogueHistory.js'
+export { DialogueInteractionSession } from './resources/DialogueInteractionSession.js'
 export { DialogueList } from './resources/DialogueList.js'
 export { DialogueResource } from './resources/DialogueResource.js'
 export { PersistentCommandStorage } from './storage/PersistentCommandStorage.js'

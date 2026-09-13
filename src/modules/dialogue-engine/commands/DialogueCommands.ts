@@ -72,6 +72,24 @@ export class DialogueCommands {
     return this.errorMessage
   }
 
+  public responseState(
+    dialogueId: string,
+    interactionId: string,
+  ): {
+    readonly commandId?: string
+    readonly pending: boolean
+    readonly inFlight: boolean
+  } {
+    const command = this.pendingForResponse(dialogueId, interactionId)
+    return Object.freeze({
+      ...(command === undefined ? {} : { commandId: command.commandId }),
+      pending: command !== undefined,
+      inFlight: this.responseDeliveries.has(
+        responseKey(dialogueId, interactionId),
+      ),
+    })
+  }
+
   public async start(): Promise<void> {
     if (this.lifecycle === 'ready') return
     if (this.lifecycle === 'disposing') throw unavailableError()
