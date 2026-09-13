@@ -20,6 +20,7 @@ export class DialogueList {
   private itemIds: readonly string[] = []
   private cursor: string | undefined
   private snapshot: string | undefined
+  private connectionError = ''
 
   public constructor(
     private readonly backend: DialogueReadBackend,
@@ -63,12 +64,28 @@ export class DialogueList {
     return this.pagination.loading
   }
 
+  public get snapshotCursor(): string | undefined {
+    return this.snapshot
+  }
+
   public get error(): string {
     const error = this.pagination.error
-    if (error == null) return ''
+    if (error == null) return this.connectionError
     return error instanceof DialogueError
       ? error.message
       : errorMessageOf(error)
+  }
+
+  public include(summary: DialogueSummary): void {
+    runInAction(() => {
+      this.store.include(summary)
+      if (!this.itemIds.includes(summary.id))
+        this.itemIds = Object.freeze([...this.itemIds, summary.id])
+    })
+  }
+
+  public setConnectionError(error: string): void {
+    this.connectionError = error
   }
 
   public resource(id: string): DialogueResource {
@@ -91,6 +108,10 @@ export class DialogueList {
   public dispose(): void {
     this.pagination.dispose()
     for (const resource of this.resources.values()) resource.dispose()
+  }
+
+  public cancelLoading(): void {
+    this.pagination.dispose()
   }
 
   private async fetchPage(

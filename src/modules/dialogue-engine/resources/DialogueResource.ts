@@ -5,6 +5,10 @@ import {
 } from '../../observable-request/index.js'
 import type { DialogueReadBackend } from '../contracts/backend.types.js'
 import type { DialogueView } from '../contracts/public.types.js'
+import type {
+  DialogueInteraction,
+  DialogueTurn,
+} from '../contracts/dialogue.types.js'
 import { DialogueError } from '../errors/DialogueError.js'
 import type { DialogueStore } from '../state/DialogueStore.js'
 import { DialogueHistory } from './DialogueHistory.js'
@@ -43,6 +47,14 @@ export class DialogueResource {
 
   public get ready(): boolean {
     return this.detailsReady && this.history.ready
+  }
+
+  public get turns(): readonly DialogueTurn[] {
+    return this.store.model(this.id)?.turns ?? []
+  }
+
+  public get interactions(): readonly DialogueInteraction[] {
+    return this.store.model(this.id)?.interactions ?? []
   }
 
   public get loading(): boolean {

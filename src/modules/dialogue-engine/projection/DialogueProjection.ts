@@ -11,7 +11,7 @@ export class DialogueProjection {
   public constructor(private readonly store: DialogueStore) {}
 
   public apply(change: DialogueChange): ProjectionResult {
-    validateChange(change)
+    validateDialogueChange(change)
     const current = this.store.model(change.dialogueId)
     if (
       current === undefined &&
@@ -85,7 +85,7 @@ export class DialogueProjection {
   }
 }
 
-function validateChange(change: DialogueChange): void {
+export function validateDialogueChange(change: DialogueChange): void {
   if (change.cursor === '') invalidChange('Dialogue change cursor is required.')
   if (change.dialogueId === '')
     invalidChange('Dialogue change identity is required.')
