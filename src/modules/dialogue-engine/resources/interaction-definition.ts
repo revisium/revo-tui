@@ -47,7 +47,7 @@ function questionsOf(
   if (value === undefined) return []
   if (!Array.isArray(value)) return undefined
   const questions = value.map(questionOf)
-  if (questions.some((question) => question === undefined)) return undefined
+  if (questions.includes(undefined)) return undefined
   const result = questions as DialogueQuestion[]
   if (new Set(result.map(({ id }) => id)).size !== result.length)
     return undefined
