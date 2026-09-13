@@ -6,7 +6,7 @@ import { DialogueModel } from './DialogueModel.js'
 
 export class DialogueStore {
   private readonly dialogues = observable.map<string, DialogueModel>()
-  private listIds: string[] = []
+  private readonly listIds: string[] = []
 
   public constructor() {
     makeAutoObservable<this, 'dialogues'>(this, { dialogues: false })
