@@ -3,8 +3,7 @@ import { observer } from 'mobx-react-lite'
 import { useViewModel } from '../shared/lib/index.js'
 import { KeyboardHelp } from '../shared/ui/index.js'
 import type { AppViewModel } from './model/AppViewModel.js'
-import { DialogueList } from '../widgets/dialogue-list/index.js'
-import { AgentSelector } from '../widgets/agent-selector/index.js'
+import { AppScreen } from './AppScreen.js'
 
 export interface AppProps {
   readonly createModel: () => AppViewModel
@@ -20,49 +19,35 @@ export const App = observer(function App({ createModel }: AppProps) {
       <text fg="#77bdfb">{viewModel.clientName}</text>
       <text>{viewModel.connectionStatus}</text>
       <text fg="#8a8a8a">API: {viewModel.endpointLabel}</text>
-      {viewModel.route === 'list' ? (
-        <DialogueList
-          model={viewModel.dialogues.list}
-          selectedId={viewModel.dialogues.selectedId}
-        />
-      ) : (
-        <box flexDirection="column" gap={1}>
-          <text fg="#77bdfb">Compose dialogue</text>
-          <AgentSelector model={viewModel.compose.selection} />
-          <input
-            focused={viewModel.compose.focus === 'prompt'}
-            placeholder="First prompt"
-            value={viewModel.compose.prompt}
-            onInput={viewModel.compose.setPrompt}
-            onSubmit={() => viewModel.compose.submit().catch(() => undefined)}
-          />
-          {viewModel.compose.busy ? <text>Creating and sending…</text> : null}
-          {viewModel.compose.error ? (
-            <text fg="#ff7777">{viewModel.compose.error}</text>
-          ) : null}
-          {viewModel.compose.statusMessage ? (
-            <text>{viewModel.compose.statusMessage}</text>
-          ) : null}
-        </box>
-      )}
+      <AppScreen model={viewModel} />
       <KeyboardHelp
         expanded={viewModel.helpVisible}
-        hints={
-          viewModel.route === 'list'
-            ? [
-                ...viewModel.keyboardHints,
-                'n  New dialogue',
-                '↑/↓  Select',
-                'r  Refresh',
-                'm  More',
-              ]
-            : [
-                'Enter  Create and send',
-                'Escape  Back to list',
-                'Tab  Focus fields',
-              ]
-        }
+        hints={keyboardHintsFor(viewModel)}
       />
     </box>
   )
 })
+
+function keyboardHintsFor(model: AppViewModel): readonly string[] {
+  if (model.route === 'list')
+    return [
+      ...model.keyboardHints,
+      'n  New dialogue',
+      '↑/↓  Select',
+      'r  Refresh',
+      'm  More',
+    ]
+  if (model.route === 'compose')
+    return [
+      'Enter  Create and send',
+      'Escape  Back to list',
+      'Tab  Focus fields',
+    ]
+  return [
+    'Escape back',
+    'Tab prompt/controls',
+    'r retry  c cancel  o older',
+    'PgUp/PgDn  Scroll history (controls)',
+    'End  Follow latest (controls)',
+  ]
+}
