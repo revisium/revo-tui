@@ -26,7 +26,9 @@
     "typecheck:ui": "tsc -p tsconfig.ui.json --noEmit",
     "fsd:check": "steiger src",
     "verify:sources": "if [ -d src ]; then pnpm typecheck && pnpm fsd:check && pnpm build; else echo 'Source gates: N/A (src directory is not present)'; fi",
-    "verify": "pnpm format:check && pnpm lint && pnpm verify:sources",
+    "gql:codegen": "graphql-codegen --config codegen.ts",
+    "gql:codegen:check": "pnpm gql:codegen && git diff --exit-code -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ && codegen_untracked=\"$(git ls-files --others --exclude-standard -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__)\" && test -z \"$codegen_untracked\"",
+    "verify": "pnpm gql:codegen:check && pnpm format:check && pnpm lint && pnpm verify:sources",
     "sonar:issues:local": "bash scripts/sonar-issues-local.sh"
   },
   "dependencies": {
@@ -42,6 +44,13 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@graphql-codegen/add": "5.0.3",
+    "@graphql-codegen/cli": "5.0.2",
+    "@graphql-codegen/typed-document-node": "7.1.0",
+    "@graphql-codegen/typescript": "4.0.6",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
+    "@graphql-codegen/typescript-operations": "4.2.0",
+    "@graphql-typed-document-node/core": "3.2.0",
     "@eslint/js": "10.0.1",
     "@feature-sliced/steiger-plugin": "0.5.8",
     "@eslint-react/eslint-plugin": "3.0.0",
