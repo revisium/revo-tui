@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+.scannerwork
+.sonar
+pnpm-lock.yaml
+LICENSE
+README.md
