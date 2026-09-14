@@ -122,6 +122,21 @@ export class InteractionViewModel {
         : ''
     return `${definition.title}${position} · ${this.stateLabel}`
   }
+  public get activeControlViewId(): string {
+    return `${this.id}:active-interaction-control`
+  }
+  public get activeControlRevision(): string {
+    const question = this.currentQuestionVM
+    return [
+      this.definition?.kind ?? '',
+      this.selected,
+      this.question,
+      question?.optionCursor ?? 0,
+      question?.customOtherActive ?? false,
+      question?.customSummary ?? '',
+      this.error,
+    ].join(':')
+  }
   public get busy(): boolean {
     return this.request.isLoading || this.sessionValue?.busy === true
   }

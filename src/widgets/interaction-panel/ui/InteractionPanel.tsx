@@ -1,6 +1,7 @@
+import type { ScrollBoxRenderable } from '@opentui/core'
 import { observer } from 'mobx-react-lite'
 import type { InteractionViewModel } from '../../../features/respond-interaction/index.js'
-import type { ReactElement } from 'react'
+import { useEffect, useRef, type ReactElement } from 'react'
 import { QuestionInput } from './QuestionInput.js'
 
 const FOCUSED_GROW = 3
@@ -14,11 +15,22 @@ export const InteractionPanel = observer(function InteractionPanel({
   focused,
 }: InteractionPanelProps) {
   const definition = model.definition
+  const scrollRef = useRef<ScrollBoxRenderable>(null)
+  const activeControlRevision = model.activeControlRevision
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      scrollRef.current?.scrollChildIntoView(model.activeControlViewId)
+    })
+    return () => clearTimeout(timeout)
+  }, [activeControlRevision, model.activeControlViewId])
   const permissionOptions =
     definition?.kind === 'permission'
       ? model.visibleOptions.map(({ option, index }) => (
           <text
             key={option.value}
+            id={
+              index === model.selected ? model.activeControlViewId : undefined
+            }
             fg={focused && index === model.selected ? '#77bdfb' : undefined}
           >
             {focused && index === model.selected ? '› ' : '  '}
@@ -38,7 +50,7 @@ export const InteractionPanel = observer(function InteractionPanel({
       minHeight={0}
       marginBottom={1}
     >
-      <scrollbox flexGrow={1} scrollY>
+      <scrollbox ref={scrollRef} flexGrow={1} scrollY>
         {model.error ? <text fg="#ff7777">{model.error}</text> : null}
         {permissionOptions}
         {definition.kind === 'input' ? questionContent : null}
@@ -68,6 +80,7 @@ function renderQuestion(
       <QuestionInput
         key={`${model.id}:${question.question?.id ?? 'missing'}`}
         interactionId={model.id}
+        activeControlViewId={model.activeControlViewId}
         model={question}
         focused={focused}
       />

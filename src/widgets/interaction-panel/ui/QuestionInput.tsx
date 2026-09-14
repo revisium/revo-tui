@@ -7,11 +7,13 @@ export interface QuestionInputProps {
   readonly model: QuestionViewModel
   readonly focused: boolean
   readonly interactionId: string
+  readonly activeControlViewId: string
 }
 export const QuestionInput = observer(function QuestionInput({
   model,
   focused,
   interactionId,
+  activeControlViewId,
 }: QuestionInputProps) {
   const question = model.question
   const textareaRef = useRef<TextareaRenderable>(null)
@@ -23,6 +25,7 @@ export const QuestionInput = observer(function QuestionInput({
     answerInput = (
       <textarea
         key={`${interactionId}:${question.id}`}
+        id={activeControlViewId}
         ref={textareaRef}
         focused={focused && !model.customOtherActive}
         initialValue={model.draft}
@@ -36,6 +39,7 @@ export const QuestionInput = observer(function QuestionInput({
   } else if (question.input === 'text' || question.input === 'number') {
     answerInput = (
       <input
+        id={activeControlViewId}
         focused={focused && !model.customOtherActive}
         value={model.draft}
         onInput={model.setDraft}
@@ -55,6 +59,7 @@ export const QuestionInput = observer(function QuestionInput({
       {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       {question.input === 'select' && model.customOtherActive ? (
         <input
+          id={activeControlViewId}
           focused={focused}
           value={model.otherDraft}
           onInput={model.setOtherDraft}
@@ -66,6 +71,9 @@ export const QuestionInput = observer(function QuestionInput({
         ? model.visibleOptions.map(({ option, index }) => (
             <text
               key={option.value}
+              id={
+                index === model.optionCursor ? activeControlViewId : undefined
+              }
               fg={index === model.optionCursor ? '#77bdfb' : undefined}
             >
               {index === model.optionCursor ? '› ' : '  '}
