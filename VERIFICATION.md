@@ -31,7 +31,8 @@ consumer directory, install that local tarball with
 `npm install <tarball> --omit=dev --no-audit --no-fund`, then check the bin
 help/version, non-TTY error, `@revisium/revo-tui/launcher` import, and that the
 package-local Bun 1.4.2 executable resolves. These are manual commands, not a
-new product check script.
+new product check script. When npm approval is enabled, approve only the exact
+installed `bun@1.4.2` script as described in README.
 
 Publishing is a separately authorized action. After review, use the ordinary
 release sequence: verify the version, build, pack, inspect/install the exact

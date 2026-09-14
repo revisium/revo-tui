@@ -31,6 +31,13 @@ returns the child UI exit code. Consumers must use Node 26.8.2 and allow the
 package lifecycle install script so the package-local Bun runtime is ready;
 no global Bun installation is required.
 
+With npm install-script approval enabled, install the local tarball, review
+Bun's pinned `bun@1.4.2` install script, approve only that package with
+`npm install-scripts approve bun`, confirm
+`node_modules/bun/bin/bun.exe --version` is `1.4.2`, and then run the local
+`revo-tui` bin. Do not use blanket approvals, `--ignore-scripts`, or a global
+Bun.
+
 The supported development and release toolchain is Node 26.8.2, pnpm 12.4.1,
 OpenTUI 0.5.11, React 19.3.0, and Bun 1.4.2. Linux glibc x64 is manually
 validated; macOS runtime validation remains a release gap.
