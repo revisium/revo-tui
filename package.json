@@ -1,9 +1,15 @@
 {
   "name": "@revisium/revo-tui",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "description": "Terminal client for Revo.",
   "license": "MIT",
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
   "bin": {
     "revo-tui": "bin/revo-tui.js"
