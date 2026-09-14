@@ -12,8 +12,8 @@ import type {
 } from '../../../modules/dialogue-engine/index.js'
 import { QuestionViewModel } from './QuestionViewModel.js'
 
-const OPTION_WINDOW = 5
-const OPTION_WINDOW_BEFORE = 2
+const OPTION_WINDOW = 3
+const OPTION_WINDOW_BEFORE = 1
 
 export class InteractionViewModel {
   public selected = 0
@@ -95,22 +95,32 @@ export class InteractionViewModel {
   }
   public get keyboardHint(): string {
     if (this.definition?.kind === 'permission')
-      return '↑↓/←→ select · Space/Enter choose · Ctrl-D decline · Ctrl-R retry'
+      return 'Tab · [ ]@controls · arrows · Space/Enter choose · ^D deny · ^R retry'
     const question = this.currentQuestionVM
-    let questionHint = 'type answer'
+    let questionHint = 'type · ^S send · ^D decline · ^R retry'
     if (question?.question?.input === 'select') {
-      questionHint = '↑↓/←→ option · Space choose'
-      if (question.question.allowOther)
-        questionHint += question.customOtherActive
-          ? ' · type Other · Enter add · Ctrl-O cancel'
-          : ' · Ctrl-O Other'
+      questionHint = 'arrows/Space · ^S send'
+      if (question.question.allowOther) {
+        questionHint = question.customOtherActive
+          ? 'type · Enter add · ^O cancel · ^S send'
+          : 'arrows/Space · ^O Other · ^S send'
+      }
     }
-    return `Ctrl-↑↓ question · ${questionHint} · Ctrl-S submit · Ctrl-D decline · Ctrl-R retry`
+    return `Tab · [ ]@ctl · ^↑↓ Q · ${questionHint}`
   }
   public get pendingMessage(): string {
     return this.canRetry
       ? 'Pending interaction response retained. Press Ctrl-R to retry.'
       : 'Interaction definition is not currently available.'
+  }
+  public get panelTitle(): string {
+    const definition = this.definition
+    if (definition === undefined) return 'Interaction'
+    const position =
+      definition.kind === 'input'
+        ? ` · ${this.question + 1}/${this.questionCount}`
+        : ''
+    return `${definition.title}${position} · ${this.stateLabel}`
   }
   public get busy(): boolean {
     return this.request.isLoading || this.sessionValue?.busy === true

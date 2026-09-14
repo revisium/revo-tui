@@ -5,8 +5,8 @@ import type {
 } from '../../../modules/dialogue-engine/index.js'
 
 export type QuestionResolver = () => DialogueQuestion | undefined
-const OPTION_WINDOW = 5
-const OPTION_WINDOW_BEFORE = 2
+const OPTION_WINDOW = 3
+const OPTION_WINDOW_BEFORE = 1
 
 export class QuestionViewModel {
   public draft = ''

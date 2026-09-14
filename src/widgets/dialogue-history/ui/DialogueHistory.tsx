@@ -20,7 +20,9 @@ export const DialogueHistory = observer(function DialogueHistory({
   return (
     <scrollbox
       ref={bindScroll}
+      flexBasis={0}
       flexGrow={1}
+      minHeight={0}
       scrollY
       stickyScroll
       stickyStart="bottom"

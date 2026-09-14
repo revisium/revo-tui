@@ -2,6 +2,9 @@ import { observer } from 'mobx-react-lite'
 import type { InteractionViewModel } from '../../../features/respond-interaction/index.js'
 import type { ReactElement } from 'react'
 import { QuestionInput } from './QuestionInput.js'
+
+const FOCUSED_GROW = 3
+const UNFOCUSED_GROW = 2
 export interface InteractionPanelProps {
   readonly model: InteractionViewModel
   readonly focused: boolean
@@ -29,19 +32,18 @@ export const InteractionPanel = observer(function InteractionPanel({
     <box
       flexDirection="column"
       border
-      title={definition.title}
-      flexGrow={1}
+      title={model.panelTitle}
+      flexBasis={0}
+      flexGrow={focused ? FOCUSED_GROW : UNFOCUSED_GROW}
       minHeight={0}
+      marginBottom={1}
     >
       <scrollbox flexGrow={1} scrollY>
         {permissionOptions}
         {definition.kind === 'input' ? questionContent : null}
         {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       </scrollbox>
-      <text>State: {model.stateLabel}</text>
-      <text fg="#8a8a8a">
-        Tab focus · [ ] interaction (controls) · {model.keyboardHint}
-      </text>
+      <text fg="#8a8a8a">{model.keyboardHint}</text>
     </box>
   )
 }) as (props: InteractionPanelProps) => ReactElement
@@ -63,9 +65,6 @@ function renderQuestion(
   if (!question) return (<text>Question unavailable.</text>) as ReactElement
   return (
     <box flexDirection="column">
-      <text>
-        Question {model.question + 1}/{model.questionCount}
-      </text>
       <QuestionInput
         key={`${model.id}:${question.question?.id ?? 'missing'}`}
         interactionId={model.id}

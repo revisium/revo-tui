@@ -30,7 +30,7 @@ export const QuestionInput = observer(function QuestionInput({
           model.setDraft(textareaRef.current?.plainText ?? '')
         }
         placeholder="answer"
-        height={4}
+        height={3}
       />
     )
   } else if (question.input === 'text' || question.input === 'number') {
@@ -49,8 +49,8 @@ export const QuestionInput = observer(function QuestionInput({
         {question.title}
         {question.required ? ' *' : ''} {question.input}
         {question.multiline ? ' multiline' : ''}
+        {constraints === '' ? '' : ` · ${constraints}`}
       </text>
-      {constraints === '' ? null : <text fg="#8a8a8a">{constraints}</text>}
       {question.input === 'select'
         ? model.visibleOptions.map(({ option, index }) => (
             <text
