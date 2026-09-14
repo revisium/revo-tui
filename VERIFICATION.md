@@ -25,7 +25,8 @@ npm pack --json
 ```
 
 Inspect the tarball contents: it must contain only the `bin` launcher, built
-`dist`, `README.md`, and `LICENSE` from the package allowlist. In a fresh
+`dist`, `README.md`, `LICENSE`, and npm's mandatory `package.json` from the
+package allowlist. In a fresh
 consumer directory, install that local tarball with
 `npm install <tarball> --omit=dev --no-audit --no-fund`, then check the bin
 help/version, non-TTY error, `@revisium/revo-tui/launcher` import, and that the

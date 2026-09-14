@@ -18,6 +18,7 @@ The package launcher is also available to Node applications:
 ```js
 import { runRevoTui } from '@revisium/revo-tui/launcher'
 
+const abortController = new AbortController()
 const exitCode = await runRevoTui({
   apiUrl: 'http://127.0.0.1:3000/graphql',
   dataDir: '/var/tmp/revo-tui',
@@ -26,7 +27,9 @@ const exitCode = await runRevoTui({
 ```
 
 The launcher requires a TTY, runs the package-local Bun 1.4.2 runtime, and
-returns the child UI exit code. It does not require a global Bun installation.
+returns the child UI exit code. Consumers must use Node 26.8.2 and allow the
+package lifecycle install script so the package-local Bun runtime is ready;
+no global Bun installation is required.
 
 The supported development and release toolchain is Node 26.8.2, pnpm 12.4.1,
 OpenTUI 0.5.11, React 19.3.0, and Bun 1.4.2. Linux glibc x64 is manually
