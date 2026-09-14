@@ -224,7 +224,10 @@ export class AppViewModel {
       return (interaction.chooseNext(-1), true)
     if (name === 'down' || name === 'right')
       return (interaction.chooseNext(1), true)
-    if (name === 'space') return true
+    if (name === 'space') {
+      interaction.choose().catch(() => undefined)
+      return true
+    }
     return this.handleInteractionAction(interaction, name, ctrl)
   }
 
@@ -235,14 +238,17 @@ export class AppViewModel {
   ): boolean {
     const question = interaction.currentQuestionVM
     if (!question) return false
+    if (this.handleInteractionAction(interaction, name, ctrl)) return true
+    const definition = question.question
+    if (definition?.input !== 'select' || question.customOtherActive)
+      return false
     if (name === 'up' || name === 'left') return (question.chooseNext(-1), true)
     if (name === 'down' || name === 'right')
       return (question.chooseNext(1), true)
     if (name === 'space') return (question.choose(), true)
-    if (ctrl && name === 'o') return (question.activateOther(), true)
-    if (name === 'enter' && question.customOtherActive)
-      return (question.addOther(), true)
-    return this.handleInteractionAction(interaction, name, ctrl)
+    if (ctrl && name === 'o' && definition.allowOther)
+      return (question.activateOther(), true)
+    return false
   }
 
   private handleInteractionAction(

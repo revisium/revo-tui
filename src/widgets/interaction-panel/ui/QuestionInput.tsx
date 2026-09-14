@@ -4,13 +4,18 @@ import { useRef, type ReactElement, type ReactNode } from 'react'
 import type { QuestionViewModel } from '../../../features/respond-interaction/index.js'
 import type { DialogueQuestion } from '../../../modules/dialogue-engine/index.js'
 
+const OPTION_WINDOW = 5
+const OPTION_WINDOW_BEFORE = 2
+
 export interface QuestionInputProps {
   readonly model: QuestionViewModel
   readonly focused: boolean
+  readonly interactionId: string
 }
 export const QuestionInput = observer(function QuestionInput({
   model,
   focused,
+  interactionId,
 }: QuestionInputProps) {
   const question = model.question
   const textareaRef = useRef<TextareaRenderable>(null)
@@ -21,7 +26,7 @@ export const QuestionInput = observer(function QuestionInput({
   if (question.input === 'text' && question.multiline) {
     answerInput = (
       <textarea
-        key={question.id}
+        key={`${interactionId}:${question.id}`}
         ref={textareaRef}
         focused={focused && !model.customOtherActive}
         initialValue={model.draft}
@@ -51,16 +56,18 @@ export const QuestionInput = observer(function QuestionInput({
       </text>
       {constraints === '' ? null : <text fg="#8a8a8a">{constraints}</text>}
       {question.input === 'select'
-        ? question.options.map((option, index) => (
-            <text
-              key={option.value}
-              fg={index === model.optionCursor ? '#77bdfb' : undefined}
-            >
-              {index === model.optionCursor ? '› ' : '  '}
-              {option.label}{' '}
-              {model.selectedValues.includes(option.value) ? '✓' : ''}
-            </text>
-          ))
+        ? visibleOptions(question.options, model.optionCursor).map(
+            ({ option, index }) => (
+              <text
+                key={option.value}
+                fg={index === model.optionCursor ? '#77bdfb' : undefined}
+              >
+                {index === model.optionCursor ? '› ' : '  '}
+                {option.label}{' '}
+                {model.selectedValues.includes(option.value) ? '✓' : ''}
+              </text>
+            ),
+          )
         : null}
       {question.input === 'select'
         ? model.customValues.map((value) => (
@@ -76,6 +83,7 @@ export const QuestionInput = observer(function QuestionInput({
           focused={focused && model.customOtherActive}
           value={model.otherDraft}
           onInput={model.setOtherDraft}
+          onSubmit={model.addOther}
           placeholder="Other…"
         />
       ) : null}
@@ -113,4 +121,21 @@ function numberConstraints(question: DialogueQuestion): string[] {
   if (question.maximum !== undefined)
     constraints.push(`maximum ${question.maximum}`)
   return constraints
+}
+
+function visibleOptions(
+  options: DialogueQuestion['options'],
+  cursor: number,
+): readonly {
+  readonly option: DialogueQuestion['options'][number]
+  readonly index: number
+}[] {
+  const start = Math.max(
+    0,
+    Math.min(cursor - OPTION_WINDOW_BEFORE, options.length - OPTION_WINDOW),
+  )
+  return options.slice(start, start + OPTION_WINDOW).map((option, offset) => ({
+    option,
+    index: start + offset,
+  }))
 }
