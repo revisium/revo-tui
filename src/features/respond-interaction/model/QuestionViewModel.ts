@@ -41,6 +41,12 @@ export class QuestionViewModel {
     return Object.freeze([...this.custom])
   }
 
+  public get customSummary(): string {
+    return this.customValues.length === 0
+      ? ''
+      : ` · Other: ${this.customValues.join(', ')} ✓`
+  }
+
   public get customOtherActive(): boolean {
     const question = this.question
     return (

@@ -50,7 +50,18 @@ export const QuestionInput = observer(function QuestionInput({
         {question.required ? ' *' : ''} {question.input}
         {question.multiline ? ' multiline' : ''}
         {constraints === '' ? '' : ` · ${constraints}`}
+        {model.customSummary}
       </text>
+      {model.error ? <text fg="#ff7777">{model.error}</text> : null}
+      {question.input === 'select' && model.customOtherActive ? (
+        <input
+          focused={focused}
+          value={model.otherDraft}
+          onInput={model.setOtherDraft}
+          onSubmit={model.addOther}
+          placeholder="Other…"
+        />
+      ) : null}
       {question.input === 'select'
         ? model.visibleOptions.map(({ option, index }) => (
             <text
@@ -63,25 +74,7 @@ export const QuestionInput = observer(function QuestionInput({
             </text>
           ))
         : null}
-      {question.input === 'select'
-        ? model.customValues.map((value) => (
-            <text key={value} fg="#77bdfb">
-              {'  '}
-              Other: {value} ✓
-            </text>
-          ))
-        : null}
       {answerInput}
-      {question.input === 'select' && question.allowOther ? (
-        <input
-          focused={focused && model.customOtherActive}
-          value={model.otherDraft}
-          onInput={model.setOtherDraft}
-          onSubmit={model.addOther}
-          placeholder="Other…"
-        />
-      ) : null}
-      {model.error ? <text fg="#ff7777">{model.error}</text> : null}
     </box>
   )
 }) as (props: QuestionInputProps) => ReactElement

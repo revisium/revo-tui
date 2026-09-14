@@ -39,9 +39,9 @@ export const InteractionPanel = observer(function InteractionPanel({
       marginBottom={1}
     >
       <scrollbox flexGrow={1} scrollY>
+        {model.error ? <text fg="#ff7777">{model.error}</text> : null}
         {permissionOptions}
         {definition.kind === 'input' ? questionContent : null}
-        {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       </scrollbox>
       <text fg="#8a8a8a">{model.keyboardHint}</text>
     </box>

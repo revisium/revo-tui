@@ -281,7 +281,10 @@ export class AppViewModel {
       interaction.retry().catch(() => undefined)
       return true
     }
-    if (name === 'enter' && interaction.definition?.kind === 'permission') {
+    if (
+      (name === 'enter' || name === 'return') &&
+      interaction.definition?.kind === 'permission'
+    ) {
       interaction.choose().catch(() => undefined)
       return true
     }
