@@ -14,6 +14,7 @@ import type { DialogueStore } from '../state/DialogueStore.js'
 import { DialogueHistory } from './DialogueHistory.js'
 import type { DialogueCommands } from '../commands/DialogueCommands.js'
 import { DialogueInteractionSession } from './DialogueInteractionSession.js'
+import type { SubscriptionState } from '../../graphql-subscriptions/index.js'
 
 export class DialogueResource {
   public readonly history: DialogueHistory
@@ -23,6 +24,7 @@ export class DialogueResource {
   private interactionsReady = false
   private relatedGeneration = 0
   private owned = false
+  private connectionValue: SubscriptionState = stoppedConnection()
   private readonly sessions = new Map<string, DialogueInteractionSession>()
 
   public constructor(
@@ -81,6 +83,17 @@ export class DialogueResource {
 
   public get loading(): boolean {
     return this.request.isLoading || this.history.loading
+  }
+
+  public get connection(): SubscriptionState {
+    return Object.freeze({ ...this.connectionValue })
+  }
+
+  public setConnectionState(state: SubscriptionState): void {
+    this.connectionValue = Object.freeze({
+      status: state.status,
+      error: state.error,
+    })
   }
 
   public get error(): string {
@@ -158,4 +171,8 @@ export class DialogueResource {
       this.detailsReady = true
     })
   }
+}
+
+function stoppedConnection(): SubscriptionState {
+  return Object.freeze({ status: 'Stopped', error: '' })
 }

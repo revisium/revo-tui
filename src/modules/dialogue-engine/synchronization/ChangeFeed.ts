@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx'
 import type { DialogueWatchOptions } from '../contracts/backend.types.js'
 import type { DialogueChange } from '../contracts/dialogue.types.js'
 import { DialogueError } from '../errors/DialogueError.js'
+import type { SubscriptionState } from '../../graphql-subscriptions/index.js'
 
 interface ChangeFeedOptions {
   readonly watch: (options: DialogueWatchOptions) => {
@@ -11,6 +12,7 @@ interface ChangeFeedOptions {
   readonly snapshot: (signal: AbortSignal) => Promise<string>
   readonly apply: (change: DialogueChange, signal: AbortSignal) => Promise<void>
   readonly failed?: (message: string) => void
+  readonly changed?: (state: SubscriptionState) => void
 }
 
 export class ChangeFeed {
@@ -52,7 +54,10 @@ export class ChangeFeed {
     if (this.controller !== undefined) return
     this.ready.catch(() => undefined)
     this.controller = new AbortController()
-    this.open(++this.generation)
+    const generation = ++this.generation
+    this.change(generation, { status: 'Connecting', error: '' })
+    if (generation === this.generation && this.controller !== undefined)
+      this.open(generation)
   }
 
   public stop(): void {
@@ -62,6 +67,7 @@ export class ChangeFeed {
     this.lease?.dispose()
     this.lease = undefined
     this.controller = undefined
+    this.options.changed?.({ status: 'Stopped', error: '' })
     this.settleReady(
       new DialogueError('protocol', 'Dialogue loading was cancelled.', 'stop'),
     )
@@ -75,6 +81,7 @@ export class ChangeFeed {
         signal: controller.signal,
         prepare: (signal) => this.prepare(generation, signal),
         receive: (change, signal) => this.receive(generation, change, signal),
+        changed: (state) => this.change(generation, state),
       })
       if (generation !== this.generation) {
         lease.dispose()
@@ -142,11 +149,18 @@ export class ChangeFeed {
       error instanceof DialogueError
         ? error.message
         : 'Dialogue updates are unavailable.'
-    this.options.failed?.(this.error)
     this.controller.abort()
     this.lease?.dispose()
     this.lease = undefined
+    this.controller = undefined
     this.settleReady(error)
+    this.options.changed?.({ status: 'Stopped', error: this.error })
+    this.options.failed?.(this.error)
+  }
+
+  private change(generation: number, state: SubscriptionState): void {
+    if (generation !== this.generation || this.controller === undefined) return
+    this.options.changed?.({ status: state.status, error: state.error })
   }
 
   private settleReady(error?: unknown): void {

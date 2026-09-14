@@ -15,7 +15,15 @@ export const App = observer(function App({ createModel }: AppProps) {
   useKeyboard((key) => viewModel.handleKey(key.name, key.ctrl))
 
   return (
-    <box flexDirection="column" padding={1} gap={1} border title="Revo TUI">
+    <box
+      flexDirection="column"
+      flexGrow={1}
+      minHeight={0}
+      padding={1}
+      gap={1}
+      border
+      title="Revo TUI"
+    >
       <text fg="#77bdfb">{viewModel.clientName}</text>
       <text>{viewModel.connectionStatus}</text>
       <text fg="#8a8a8a">API: {viewModel.endpointLabel}</text>
@@ -45,7 +53,8 @@ function keyboardHintsFor(model: AppViewModel): readonly string[] {
     ]
   return [
     'Escape back',
-    'Tab prompt/controls',
+    'Tab  Prompt / controls / interaction focus',
+    '[ / ]  Switch interaction (controls)',
     'r retry  c cancel  o older',
     'PgUp/PgDn  Scroll history (controls)',
     'End  Follow latest (controls)',

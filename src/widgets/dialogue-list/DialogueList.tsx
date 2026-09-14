@@ -12,11 +12,26 @@ export const DialogueList = observer(function DialogueList({
   selectedId,
 }: DialogueListProps) {
   if (model.loading && model.items.length === 0)
-    return <text>Loading dialogues…</text>
+    return (
+      <box flexDirection="column">
+        <text>Loading dialogues…</text>
+        <text fg="#8a8a8a">{connectionText(model)}</text>
+      </box>
+    )
   if (model.error !== '' && model.items.length === 0)
-    return <text fg="#ff7777">{model.error}</text>
+    return (
+      <box flexDirection="column">
+        <text fg="#ff7777">{model.error}</text>
+        <text fg="#8a8a8a">{connectionText(model)}</text>
+      </box>
+    )
   if (model.items.length === 0)
-    return <text>No dialogues yet. Press n to compose.</text>
+    return (
+      <box flexDirection="column">
+        <text>No dialogues yet. Press n to compose.</text>
+        <text fg="#8a8a8a">{connectionText(model)}</text>
+      </box>
+    )
   return (
     <box flexDirection="column" gap={1}>
       {model.items.map((resource) => {
@@ -34,7 +49,14 @@ export const DialogueList = observer(function DialogueList({
         )
       })}
       {model.error !== '' ? <text fg="#ff7777">{model.error}</text> : null}
+      <text fg="#8a8a8a">{connectionText(model)}</text>
       {model.hasMore ? <text fg="#8a8a8a">↓ more available</text> : null}
     </box>
   )
 }) as (props: DialogueListProps) => ReactElement
+
+function connectionText(model: DialogueListView): string {
+  const error = model.connection.error
+  const suffix = error === '' ? '' : ` — ${error}`
+  return `Updates: ${model.connection.status}${suffix}`
+}

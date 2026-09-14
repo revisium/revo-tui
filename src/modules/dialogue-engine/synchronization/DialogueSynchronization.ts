@@ -51,6 +51,7 @@ export class DialogueSynchronization {
         return Promise.resolve()
       },
       failed: this.list.setConnectionError,
+      changed: this.list.setConnectionState,
     })
   }
 
@@ -60,6 +61,7 @@ export class DialogueSynchronization {
       snapshot: (signal) => this.dialogueSnapshot(resource, signal),
       apply: (change, signal) => this.apply(resource, change, signal),
       failed: resource.history.setConnectionError,
+      changed: resource.setConnectionState,
     })
   }
 

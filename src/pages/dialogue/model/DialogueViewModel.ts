@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx'
+import { makeAutoObservable, reaction, type IReactionDisposer } from 'mobx'
 import {
   ObservableRequest,
   RequestAbortError,
@@ -11,10 +11,11 @@ import type {
   DialogueLease,
   PendingDialogueMessage,
 } from '../../../modules/dialogue-engine/index.js'
+import { InteractionViewModel } from '../../../features/respond-interaction/index.js'
 
 export class DialogueViewModel {
   public draft = ''
-  public focus: 'prompt' | 'controls' = 'prompt'
+  public focus: 'prompt' | 'controls' | 'interaction' = 'prompt'
   private readonly readyRequest: ObservableRequest<
     void,
     [DialogueLease, number]
@@ -22,9 +23,12 @@ export class DialogueViewModel {
   private readonly sendRequest: ObservableRequest<void, [SendAttempt, number]>
   private readonly cancelRequest: ObservableRequest<void, [string, number]>
   private historyScroll: HistoryScroll | undefined
+  private readonly interactions = new Map<string, InteractionViewModel>()
+  private interactionDisposer: IReactionDisposer | undefined
   private lease: DialogueLease | undefined
   private generation = 0
   private active = false
+  public interaction: InteractionViewModel | undefined
   public constructor(
     private readonly engine: DialogueEngine,
     private readonly actions: DialogueActions,
@@ -56,7 +60,12 @@ export class DialogueViewModel {
     )
     makeAutoObservable<
       this,
-      'cancelRequest' | 'readyRequest' | 'sendRequest' | 'historyScroll'
+      | 'cancelRequest'
+      | 'readyRequest'
+      | 'sendRequest'
+      | 'historyScroll'
+      | 'interactionDisposer'
+      | 'interactions'
     >(
       this,
       {
@@ -64,12 +73,38 @@ export class DialogueViewModel {
         readyRequest: false,
         sendRequest: false,
         historyScroll: false,
+        interactionDisposer: false,
+        interactions: false,
       },
       { autoBind: true },
     )
   }
   public get dialogue() {
     return this.lease?.dialogue
+  }
+  public get interactionIds(): readonly string[] {
+    const ids = [
+      ...(this.dialogue?.interactions
+        .filter(({ status }) => status === 'PENDING' || status === 'RESPONDING')
+        .map(({ id }) => id) ?? []),
+    ]
+    for (const command of this.commands.pending)
+      if (
+        command.kind === 'response' &&
+        command.dialogueId === this.id &&
+        !ids.includes(command.interactionId)
+      )
+        ids.push(command.interactionId)
+    return ids
+  }
+  public selectInteraction(delta: number): void {
+    const ids = this.interactionIds
+    if (!ids.length) return
+    const current = this.interaction?.id ?? ids[0]
+    if (current === undefined) return
+    const index = Math.max(0, ids.indexOf(current))
+    const id = ids[Math.min(ids.length - 1, Math.max(0, index + delta))]
+    if (id) this.selectInteractionId(id)
   }
   public get pending(): PendingDialogueMessage | undefined {
     return this.commands.pending.find(
@@ -108,6 +143,11 @@ export class DialogueViewModel {
     this.generation = generation
     const lease = this.engine.open(this.id)
     this.lease = lease
+    this.interactionDisposer = reaction(
+      () => this.interactionIds,
+      this.reconcileInteractions,
+      { fireImmediately: true },
+    )
     this.readyRequest.fetch(lease, generation).catch(() => undefined)
   }
   public dispose(): void {
@@ -117,6 +157,11 @@ export class DialogueViewModel {
     this.readyRequest.abort()
     this.sendRequest.abort()
     this.cancelRequest.abort()
+    this.interactionDisposer?.()
+    this.interactionDisposer = undefined
+    for (const interaction of this.interactions.values()) interaction.dispose()
+    this.interactions.clear()
+    this.interaction = undefined
     this.lease?.release()
     this.lease = undefined
     this.historyScroll = undefined
@@ -177,6 +222,41 @@ export class DialogueViewModel {
 
   private isCurrent(generation: number): boolean {
     return this.active && generation === this.generation
+  }
+
+  private reconcileInteractions(ids: readonly string[]): void {
+    const dialogue = this.dialogue
+    if (!this.active || dialogue === undefined) return
+    const currentId = this.interaction?.id
+    const keep = new Set(ids)
+    for (const [id, interaction] of this.interactions)
+      if (!keep.has(id)) {
+        interaction.dispose()
+        this.interactions.delete(id)
+      }
+    const selectedId =
+      currentId !== undefined && keep.has(currentId) ? currentId : ids[0]
+    if (selectedId === undefined) {
+      this.interaction = undefined
+      if (this.focus === 'interaction') this.focus = 'prompt'
+    } else this.selectInteractionId(selectedId)
+  }
+
+  private selectInteractionId(id: string): void {
+    if (this.interaction?.id === id) return
+    if (this.interaction !== undefined) {
+      this.interaction.dispose()
+    }
+    const dialogue = this.dialogue
+    if (dialogue === undefined) {
+      this.interaction = undefined
+      return
+    }
+    const interaction =
+      this.interactions.get(id) ?? new InteractionViewModel(dialogue, id)
+    interaction.mount()
+    this.interactions.set(id, interaction)
+    this.interaction = interaction
   }
 
   private assertCurrent(generation: number, signal: AbortSignal): void {

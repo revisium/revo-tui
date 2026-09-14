@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite'
 import { DialogueHistory } from '../../../widgets/dialogue-history/index.js'
 import type { DialogueViewModel } from '../model/DialogueViewModel.js'
+import { InteractionPanel } from '../../../widgets/interaction-panel/index.js'
 import type { ReactElement } from 'react'
 
 export interface DialoguePageProps {
@@ -17,15 +18,27 @@ export const DialoguePage = observer(function DialoguePage({
   if (resource === undefined) return <text>Dialogue is unavailable.</text>
   const summary = resource.snapshot?.summary
   return (
-    <box flexDirection="column" flexGrow={1} gap={1}>
+    <box flexDirection="column" flexGrow={1} minHeight={0}>
       <text fg="#77bdfb">{summary?.title ?? model.id}</text>
       <text>
         {summary?.status ?? 'unknown'} {summary?.progress ?? ''}
       </text>
-      <DialogueHistory
-        history={resource.history}
-        bindScroll={model.bindHistoryScroll}
-      />
+      <text fg="#8a8a8a">
+        Updates: {resource.connection.status}
+        {resource.connection.error ? ` — ${resource.connection.error}` : ''}
+      </text>
+      {model.focus === 'interaction' ? null : (
+        <DialogueHistory
+          history={resource.history}
+          bindScroll={model.bindHistoryScroll}
+        />
+      )}
+      {model.interaction ? (
+        <InteractionPanel
+          model={model.interaction}
+          focused={model.focus === 'interaction'}
+        />
+      ) : null}
       {model.pending ? (
         <text fg="#ffcc66">
           Pending: {model.pending.prompt} — press r to retry
@@ -34,6 +47,7 @@ export const DialoguePage = observer(function DialoguePage({
       {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       {model.busy ? <text>Working…</text> : null}
       <input
+        flexShrink={0}
         focused={model.focus === 'prompt'}
         value={model.draft}
         placeholder="Message"

@@ -13,6 +13,7 @@ import {
   type PageLoadContext,
   type PaginationOperation,
 } from './ResourcePagination.js'
+import type { SubscriptionState } from '../../graphql-subscriptions/index.js'
 
 export class DialogueList {
   private readonly pagination: ResourcePagination
@@ -22,6 +23,7 @@ export class DialogueList {
   private cursor: string | undefined
   private snapshot: string | undefined
   private connectionError = ''
+  private connectionValue: SubscriptionState = stoppedConnection()
 
   public constructor(
     private readonly backend: DialogueReadBackend,
@@ -80,6 +82,10 @@ export class DialogueList {
       : errorMessageOf(error)
   }
 
+  public get connection(): SubscriptionState {
+    return Object.freeze({ ...this.connectionValue })
+  }
+
   public include(summary: DialogueSummary): void {
     runInAction(() => {
       this.store.include(summary)
@@ -90,6 +96,13 @@ export class DialogueList {
 
   public setConnectionError(error: string): void {
     this.connectionError = error
+  }
+
+  public setConnectionState(state: SubscriptionState): void {
+    this.connectionValue = Object.freeze({
+      status: state.status,
+      error: state.error,
+    })
   }
 
   public resource(id: string): DialogueResource {
@@ -165,4 +178,8 @@ export class DialogueList {
 
 function unique(ids: readonly string[]): readonly string[] {
   return [...new Set(ids)]
+}
+
+function stoppedConnection(): SubscriptionState {
+  return Object.freeze({ status: 'Stopped', error: '' })
 }

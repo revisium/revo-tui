@@ -1,3 +1,4 @@
+import { runInAction } from 'mobx'
 import type { DialogueLease } from '../contracts/public.types.js'
 import type { DialogueList } from '../resources/DialogueList.js'
 import type { DialogueResource } from '../resources/DialogueResource.js'
@@ -21,13 +22,23 @@ export class DialogueLifecycle {
   ) {}
 
   public start(): void {
-    if (this.disposed || this.summaryFeed !== undefined) return
-    const feed = this.synchronization.summaryFeed()
-    this.summaryFeed = feed
-    feed.start()
+    runInAction(() => {
+      if (this.disposed || this.summaryFeed !== undefined) return
+      const feed = this.synchronization.summaryFeed()
+      this.summaryFeed = feed
+      feed.start()
+    })
   }
 
   public open(id: string): DialogueLease {
+    return runInAction(() => this.acquire(id))
+  }
+
+  public dispose(): void {
+    runInAction(() => this.disposeOwned())
+  }
+
+  private acquire(id: string): DialogueLease {
     if (this.disposed) throw new Error('Dialogue engine is disposed.')
     if (id === '') throw new Error('Dialogue identity is required.')
     let owner = this.owners.get(id)
@@ -46,12 +57,12 @@ export class DialogueLifecycle {
       release: () => {
         if (released) return
         released = true
-        this.release(id, owner as DialogueOwner)
+        runInAction(() => this.release(id, owner as DialogueOwner))
       },
     })
   }
 
-  public dispose(): void {
+  private disposeOwned(): void {
     if (this.disposed) return
     this.disposed = true
     this.summaryFeed?.stop()
