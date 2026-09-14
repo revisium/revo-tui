@@ -134,7 +134,7 @@ export class InteractionViewModel {
       question?.optionCursor ?? 0,
       question?.customOtherActive ?? false,
       question?.customSummary ?? '',
-      this.error,
+      this.visibleError,
     ].join(':')
   }
   public get busy(): boolean {
@@ -151,6 +151,9 @@ export class InteractionViewModel {
     if (this.request.error !== null)
       return errorMessageOf(this.request.error, 'Interaction response failed.')
     return this.sessionValue?.error ?? ''
+  }
+  public get visibleError(): string {
+    return this.error || this.currentQuestionVM?.error || ''
   }
 
   public mount(): void {

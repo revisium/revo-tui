@@ -1,7 +1,7 @@
 import type { ScrollBoxRenderable } from '@opentui/core'
 import { observer } from 'mobx-react-lite'
 import type { InteractionViewModel } from '../../../features/respond-interaction/index.js'
-import { useEffect, useRef, type ReactElement } from 'react'
+import { useCallback, useEffect, useRef, type ReactElement } from 'react'
 import { QuestionInput } from './QuestionInput.js'
 
 const FOCUSED_GROW = 3
@@ -16,13 +16,20 @@ export const InteractionPanel = observer(function InteractionPanel({
 }: InteractionPanelProps) {
   const definition = model.definition
   const scrollRef = useRef<ScrollBoxRenderable>(null)
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
   const activeControlRevision = model.activeControlRevision
-  useEffect(() => {
-    const timeout = setTimeout(() => {
+  const revealActiveControl = useCallback(() => {
+    clearTimeout(revealTimeoutRef.current)
+    revealTimeoutRef.current = setTimeout(() => {
       scrollRef.current?.scrollChildIntoView(model.activeControlViewId)
     })
-    return () => clearTimeout(timeout)
-  }, [activeControlRevision, model.activeControlViewId])
+  }, [model.activeControlViewId])
+  useEffect(() => {
+    revealActiveControl()
+    return () => clearTimeout(revealTimeoutRef.current)
+  }, [activeControlRevision, focused, revealActiveControl])
   const permissionOptions =
     definition?.kind === 'permission'
       ? model.visibleOptions.map(({ option, index }) => (
@@ -50,8 +57,17 @@ export const InteractionPanel = observer(function InteractionPanel({
       minHeight={0}
       marginBottom={1}
     >
-      <scrollbox ref={scrollRef} flexGrow={1} scrollY>
-        {model.error ? <text fg="#ff7777">{model.error}</text> : null}
+      {model.visibleError ? (
+        <text flexShrink={0} fg="#ff7777">
+          {model.visibleError}
+        </text>
+      ) : null}
+      <scrollbox
+        ref={scrollRef}
+        flexGrow={1}
+        scrollY
+        onSizeChange={revealActiveControl}
+      >
         {permissionOptions}
         {definition.kind === 'input' ? questionContent : null}
       </scrollbox>

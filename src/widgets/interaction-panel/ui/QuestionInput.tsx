@@ -56,7 +56,6 @@ export const QuestionInput = observer(function QuestionInput({
         {constraints === '' ? '' : ` · ${constraints}`}
         {model.customSummary}
       </text>
-      {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       {question.input === 'select' && model.customOtherActive ? (
         <input
           id={activeControlViewId}
@@ -72,7 +71,9 @@ export const QuestionInput = observer(function QuestionInput({
             <text
               key={option.value}
               id={
-                index === model.optionCursor ? activeControlViewId : undefined
+                !model.customOtherActive && index === model.optionCursor
+                  ? activeControlViewId
+                  : undefined
               }
               fg={index === model.optionCursor ? '#77bdfb' : undefined}
             >
