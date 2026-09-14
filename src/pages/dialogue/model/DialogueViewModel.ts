@@ -15,7 +15,7 @@ import { InteractionViewModel } from '../../../features/respond-interaction/inde
 
 export class DialogueViewModel {
   public draft = ''
-  public focus: 'prompt' | 'controls' = 'prompt'
+  public focus: 'prompt' | 'controls' | 'interaction' = 'prompt'
   private readonly readyRequest: ObservableRequest<
     void,
     [DialogueLease, number]

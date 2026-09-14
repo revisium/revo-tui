@@ -89,7 +89,7 @@ export class AppViewModel {
       return
     }
     if (this.route === 'compose' && this.handleComposeKey(name)) return
-    if (this.route === 'dialogue' && this.handleDialogueKey(name)) return
+    if (this.route === 'dialogue' && this.handleDialogueKey(name, ctrl)) return
     if (this.route === 'list' && this.handleListKey(name)) return
     if (name === '?' || name === 'h') {
       this.helpVisible = !this.helpVisible
@@ -175,7 +175,7 @@ export class AppViewModel {
     return false
   }
 
-  private handleDialogueKey(name: string): boolean {
+  private handleDialogueKey(name: string, ctrl: boolean): boolean {
     const dialogue = this.dialogue
     if (!dialogue) return false
     if (name === 'escape') {
@@ -183,12 +183,21 @@ export class AppViewModel {
       return true
     }
     if (name === 'tab') {
-      dialogue.focus = dialogue.focus === 'prompt' ? 'controls' : 'prompt'
+      if (dialogue.focus === 'prompt') dialogue.focus = 'controls'
+      else if (dialogue.focus === 'controls' && dialogue.interaction)
+        dialogue.focus = 'interaction'
+      else dialogue.focus = 'prompt'
       return true
     }
     if (
       dialogue.focus === 'controls' &&
       this.handleDialogueControl(dialogue, name)
+    )
+      return true
+    if (
+      dialogue.focus === 'interaction' &&
+      dialogue.interaction &&
+      this.handleInteractionKey(dialogue, name, ctrl)
     )
       return true
     return (
@@ -198,6 +207,66 @@ export class AppViewModel {
       name === 'h' ||
       name === '?'
     )
+  }
+
+  private handleInteractionKey(
+    dialogue: DialogueViewModel,
+    name: string,
+    ctrl: boolean,
+  ): boolean {
+    const interaction = dialogue.interaction
+    if (!interaction) return false
+    if (ctrl && name === 'up') return (interaction.selectQuestion(-1), true)
+    if (ctrl && name === 'down') return (interaction.selectQuestion(1), true)
+    if (interaction.definition?.kind === 'input')
+      return this.handleQuestionKey(interaction, name, ctrl)
+    if (name === 'up' || name === 'left')
+      return (interaction.chooseNext(-1), true)
+    if (name === 'down' || name === 'right')
+      return (interaction.chooseNext(1), true)
+    if (name === 'space') return true
+    return this.handleInteractionAction(interaction, name, ctrl)
+  }
+
+  private handleQuestionKey(
+    interaction: NonNullable<DialogueViewModel['interaction']>,
+    name: string,
+    ctrl: boolean,
+  ): boolean {
+    const question = interaction.currentQuestionVM
+    if (!question) return false
+    if (name === 'up' || name === 'left') return (question.chooseNext(-1), true)
+    if (name === 'down' || name === 'right')
+      return (question.chooseNext(1), true)
+    if (name === 'space') return (question.choose(), true)
+    if (ctrl && name === 'o') return (question.activateOther(), true)
+    if (name === 'enter' && question.customOtherActive)
+      return (question.addOther(), true)
+    return this.handleInteractionAction(interaction, name, ctrl)
+  }
+
+  private handleInteractionAction(
+    interaction: NonNullable<DialogueViewModel['interaction']>,
+    name: string,
+    ctrl: boolean,
+  ): boolean {
+    if (ctrl && name === 's') {
+      interaction.submit().catch(() => undefined)
+      return true
+    }
+    if (ctrl && name === 'd') {
+      interaction.decline().catch(() => undefined)
+      return true
+    }
+    if (ctrl && name === 'r') {
+      interaction.retry().catch(() => undefined)
+      return true
+    }
+    if (name === 'enter' && interaction.definition?.kind === 'permission') {
+      interaction.choose().catch(() => undefined)
+      return true
+    }
+    return false
   }
 
   private handleDialogueControl(

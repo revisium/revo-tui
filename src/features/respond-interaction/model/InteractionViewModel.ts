@@ -69,6 +69,9 @@ export class InteractionViewModel {
     const current = this.definition?.questions[this.question]
     return current === undefined ? undefined : this.questions.get(current.id)
   }
+  public get questionCount(): number {
+    return this.definition?.questions.length ?? 0
+  }
   public get busy(): boolean {
     return this.request.isLoading || this.sessionValue?.busy === true
   }

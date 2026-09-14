@@ -23,12 +23,19 @@ export const DialoguePage = observer(function DialoguePage({
       <text>
         {summary?.status ?? 'unknown'} {summary?.progress ?? ''}
       </text>
+      <text fg="#8a8a8a">
+        Updates: {resource.connection.status}
+        {resource.connection.error ? ` — ${resource.connection.error}` : ''}
+      </text>
       <DialogueHistory
         history={resource.history}
         bindScroll={model.bindHistoryScroll}
       />
       {model.interaction ? (
-        <InteractionPanel model={model.interaction} />
+        <InteractionPanel
+          model={model.interaction}
+          focused={model.focus === 'interaction'}
+        />
       ) : null}
       {model.pending ? (
         <text fg="#ffcc66">
