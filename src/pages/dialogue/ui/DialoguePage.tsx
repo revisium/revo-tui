@@ -18,7 +18,7 @@ export const DialoguePage = observer(function DialoguePage({
   if (resource === undefined) return <text>Dialogue is unavailable.</text>
   const summary = resource.snapshot?.summary
   return (
-    <box flexDirection="column" flexGrow={1} gap={1}>
+    <box flexDirection="column" flexGrow={1} minHeight={0}>
       <text fg="#77bdfb">{summary?.title ?? model.id}</text>
       <text>
         {summary?.status ?? 'unknown'} {summary?.progress ?? ''}
@@ -45,6 +45,7 @@ export const DialoguePage = observer(function DialoguePage({
       {model.error ? <text fg="#ff7777">{model.error}</text> : null}
       {model.busy ? <text>Working…</text> : null}
       <input
+        flexShrink={0}
         focused={model.focus === 'prompt'}
         value={model.draft}
         placeholder="Message"

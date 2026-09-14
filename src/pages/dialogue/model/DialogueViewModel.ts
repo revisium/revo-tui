@@ -236,8 +236,10 @@ export class DialogueViewModel {
       }
     const selectedId =
       currentId !== undefined && keep.has(currentId) ? currentId : ids[0]
-    if (selectedId === undefined) this.interaction = undefined
-    else this.selectInteractionId(selectedId)
+    if (selectedId === undefined) {
+      this.interaction = undefined
+      if (this.focus === 'interaction') this.focus = 'prompt'
+    } else this.selectInteractionId(selectedId)
   }
 
   private selectInteractionId(id: string): void {

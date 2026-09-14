@@ -179,6 +179,11 @@ export class AppViewModel {
     const dialogue = this.dialogue
     if (!dialogue) return false
     if (name === 'escape') {
+      const question = dialogue.interaction?.currentQuestionVM
+      if (dialogue.focus === 'interaction' && question?.customOtherActive) {
+        question.cancelOther()
+        return true
+      }
       dialogue.back()
       return true
     }
@@ -240,14 +245,22 @@ export class AppViewModel {
     if (!question) return false
     if (this.handleInteractionAction(interaction, name, ctrl)) return true
     const definition = question.question
+    if (
+      ctrl &&
+      name === 'o' &&
+      definition?.input === 'select' &&
+      definition.allowOther
+    ) {
+      if (question.customOtherActive) question.cancelOther()
+      else question.activateOther()
+      return true
+    }
     if (definition?.input !== 'select' || question.customOtherActive)
       return false
     if (name === 'up' || name === 'left') return (question.chooseNext(-1), true)
     if (name === 'down' || name === 'right')
       return (question.chooseNext(1), true)
     if (name === 'space') return (question.choose(), true)
-    if (ctrl && name === 'o' && definition.allowOther)
-      return (question.activateOther(), true)
     return false
   }
 

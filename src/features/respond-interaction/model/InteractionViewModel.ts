@@ -12,6 +12,9 @@ import type {
 } from '../../../modules/dialogue-engine/index.js'
 import { QuestionViewModel } from './QuestionViewModel.js'
 
+const OPTION_WINDOW = 5
+const OPTION_WINDOW_BEFORE = 2
+
 export class InteractionViewModel {
   public selected = 0
   public question = 0
@@ -71,6 +74,43 @@ export class InteractionViewModel {
   }
   public get questionCount(): number {
     return this.definition?.questions.length ?? 0
+  }
+  public get visibleOptions() {
+    const start = Math.max(
+      0,
+      Math.min(
+        this.selected - OPTION_WINDOW_BEFORE,
+        this.options.length - OPTION_WINDOW,
+      ),
+    )
+    return this.options
+      .slice(start, start + OPTION_WINDOW)
+      .map((option, offset) => ({ option, index: start + offset }))
+  }
+  public get stateLabel(): string {
+    if (this.busy) return 'sending'
+    if (this.canRespond) return 'ready'
+    if (this.canRetry) return 'retry available'
+    return 'waiting'
+  }
+  public get keyboardHint(): string {
+    if (this.definition?.kind === 'permission')
+      return '↑↓/←→ select · Space/Enter choose · Ctrl-D decline · Ctrl-R retry'
+    const question = this.currentQuestionVM
+    let questionHint = 'type answer'
+    if (question?.question?.input === 'select') {
+      questionHint = '↑↓/←→ option · Space choose'
+      if (question.question.allowOther)
+        questionHint += question.customOtherActive
+          ? ' · type Other · Enter add · Ctrl-O cancel'
+          : ' · Ctrl-O Other'
+    }
+    return `Ctrl-↑↓ question · ${questionHint} · Ctrl-S submit · Ctrl-D decline · Ctrl-R retry`
+  }
+  public get pendingMessage(): string {
+    return this.canRetry
+      ? 'Pending interaction response retained. Press Ctrl-R to retry.'
+      : 'Interaction definition is not currently available.'
   }
   public get busy(): boolean {
     return this.request.isLoading || this.sessionValue?.busy === true

@@ -5,6 +5,8 @@ import type {
 } from '../../../modules/dialogue-engine/index.js'
 
 export type QuestionResolver = () => DialogueQuestion | undefined
+const OPTION_WINDOW = 5
+const OPTION_WINDOW_BEFORE = 2
 
 export class QuestionViewModel {
   public draft = ''
@@ -44,6 +46,37 @@ export class QuestionViewModel {
     return (
       this.otherActive && question?.input === 'select' && question.allowOther
     )
+  }
+
+  public get visibleOptions(): readonly {
+    readonly option: DialogueQuestion['options'][number]
+    readonly index: number
+  }[] {
+    const start = Math.max(
+      0,
+      Math.min(
+        this.optionCursor - OPTION_WINDOW_BEFORE,
+        this.options.length - OPTION_WINDOW,
+      ),
+    )
+    return this.options
+      .slice(start, start + OPTION_WINDOW)
+      .map((option, offset) => ({ option, index: start + offset }))
+  }
+
+  public get constraintSummary(): string {
+    const question = this.question
+    if (question === undefined) return ''
+    const constraints: string[] = []
+    if (question.input === 'text')
+      constraints.push(...textConstraints(question))
+    if (question.input === 'number')
+      constraints.push(...numberConstraints(question))
+    if (question.input === 'select')
+      constraints.push(question.multiple ? 'select one or more' : 'select one')
+    if (question.input === 'select' && question.allowOther)
+      constraints.push('custom values allowed')
+    return constraints.join(' · ')
   }
 
   public get value(): JsonValue | undefined {
@@ -199,4 +232,23 @@ export class QuestionViewModel {
 
 function supportedInput(input: string): boolean {
   return input === 'text' || input === 'number' || input === 'select'
+}
+
+function textConstraints(question: DialogueQuestion): string[] {
+  const constraints: string[] = []
+  if (question.minLength !== undefined)
+    constraints.push(`min length ${question.minLength}`)
+  if (question.maxLength !== undefined)
+    constraints.push(`max length ${question.maxLength}`)
+  return constraints
+}
+
+function numberConstraints(question: DialogueQuestion): string[] {
+  const constraints: string[] = []
+  if (question.integer) constraints.push('whole number')
+  if (question.minimum !== undefined)
+    constraints.push(`minimum ${question.minimum}`)
+  if (question.maximum !== undefined)
+    constraints.push(`maximum ${question.maximum}`)
+  return constraints
 }
