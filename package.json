@@ -24,6 +24,7 @@
     "build": "pnpm build:launcher && pnpm build:ui",
     "build:launcher": "tsc -p tsconfig.launcher.json",
     "build:ui": "pnpm exec bun build src/app/main.tsx --target bun --packages external --outfile dist/ui/main.js",
+    "prepack": "pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
