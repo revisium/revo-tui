@@ -1,0 +1,64 @@
+name: Bootstrap stable release baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate the baseline without creating a tag.
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ${{ github.repository }}-release-operations
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require master and release credentials for write mode
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_BOT_CLIENT_ID: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ "$REPOSITORY" != "revisium/revo-tui" ]]; then
+            echo "Bootstrap is restricted to revisium/revo-tui." >&2
+            exit 1
+          fi
+          if [[ "$DISPATCH_REF" != "refs/heads/master" ]]; then
+            echo "Bootstrap must be dispatched from master." >&2
+            exit 1
+          fi
+          if [[ "$DRY_RUN" != "true" && "$DRY_RUN" != "false" ]]; then
+            echo "dry_run must be true or false." >&2
+            exit 1
+          fi
+          if [[ "$DRY_RUN" != "true" && ( -z "$RELEASE_BOT_CLIENT_ID" || -z "$RELEASE_BOT_PRIVATE_KEY" ) ]]; then
+            echo "Write mode requires RELEASE_BOT_CLIENT_ID and RELEASE_BOT_PRIVATE_KEY." >&2
+            exit 1
+          fi
+
+  bootstrap:
+    needs: guard
+    uses: revisium/revisium-actions/.github/workflows/bootstrap-stable.yml@6f243e6b395abc914c4427d204ffad7822a8e9e3
+    with:
+      target_version: 0.0.0
+      dry_run: ${{ inputs.dry_run }}
+      base_branch: master
+      node_version: 26.8.2
+      package_manager: pnpm
+      package_path: package.json
+      install_command: pnpm install --frozen-lockfile
+      validate_command: pnpm verify
+      create_github_release: false
+    secrets:
+      RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
