@@ -12,7 +12,9 @@ export interface AppProps {
 export const App = observer(function App({ createModel }: AppProps) {
   const viewModel = useViewModel(createModel)
 
-  useKeyboard((key) => viewModel.handleKey(key.name, key.ctrl))
+  useKeyboard((key) =>
+    viewModel.handleKey(key.name === 'return' ? 'enter' : key.name, key.ctrl),
+  )
 
   return (
     <box
