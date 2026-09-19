@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           - start-minor-alpha
+          - alpha-bump
       dry_run:
         description: Compute and validate the release without writing refs.
         required: false
@@ -27,7 +28,7 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - name: Require master and release credentials for write mode
+      - name: Require an allowed transition ref and release credentials for write mode
         env:
           ACTION: ${{ inputs.action }}
           DISPATCH_REF: ${{ github.ref }}
@@ -41,12 +42,20 @@ jobs:
             echo "Release train is restricted to revisium/revo-tui." >&2
             exit 1
           fi
-          if [[ "$DISPATCH_REF" != "refs/heads/master" ]]; then
-            echo "Release train must be dispatched from master." >&2
-            exit 1
-          fi
-          if [[ "$ACTION" != "start-minor-alpha" ]]; then
-            echo "Only start-minor-alpha is enabled in this initial release workflow." >&2
+          case "$ACTION" in
+            start-minor-alpha)
+              EXPECTED_REF="refs/heads/master"
+              ;;
+            alpha-bump)
+              EXPECTED_REF="refs/heads/release/0.1.x"
+              ;;
+            *)
+              echo "Unsupported release transition: $ACTION" >&2
+              exit 1
+              ;;
+          esac
+          if [[ "$DISPATCH_REF" != "$EXPECTED_REF" ]]; then
+            echo "Transition $ACTION must be dispatched from $EXPECTED_REF (got $DISPATCH_REF)." >&2
             exit 1
           fi
           if [[ "$DRY_RUN" != "true" && "$DRY_RUN" != "false" ]]; then
