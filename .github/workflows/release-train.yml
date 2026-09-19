@@ -58,36 +58,6 @@ jobs:
             exit 1
           fi
 
-      - name: Require npm publish token for write mode
-        if: ${{ inputs.dry_run == false }}
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$NPM_TOKEN" ]]; then
-            echo "Write mode requires NPM_TOKEN for the tag-triggered publisher." >&2
-            exit 1
-          fi
-
-      - name: Set up Node.js for npm authentication preflight
-        if: ${{ inputs.dry_run == false }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.8.2
-          registry-url: https://registry.npmjs.org
-
-      - name: Verify npm token authentication
-        if: ${{ inputs.dry_run == false }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          if ! npm whoami --registry=https://registry.npmjs.org --fetch-retries=0 --fetch-timeout=15000 >/dev/null 2>&1; then
-            echo "NPM_TOKEN authentication failed against the npm registry." >&2
-            exit 1
-          fi
-          echo "NPM_TOKEN authentication succeeded. Package publish permission still requires administrator confirmation."
-
   release-train:
     needs: guard
     uses: revisium/revisium-actions/.github/workflows/release-train.yml@6f243e6b395abc914c4427d204ffad7822a8e9e3

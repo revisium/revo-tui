@@ -12,19 +12,20 @@ Before write mode, an administrator must ensure:
 - the Revisium release GitHub App is installed for this repository;
 - the repository can read `RELEASE_BOT_CLIENT_ID` as an Actions variable and
   `RELEASE_BOT_PRIVATE_KEY` as an Actions secret;
-- `NPM_TOKEN` is configured as an Actions secret with publish access to
-  `@revisium/revo-tui`;
+- npm Trusted Publishing is configured for `revisium/revo-tui` and the exact
+  workflow filename `npm-publish.yml`, with the `npm publish` action allowed;
+- the Trusted Publisher environment is empty, matching the workflow;
+- `package.json` points to `https://github.com/revisium/revo-tui` and the
+  publisher runs on GitHub-hosted runners with `id-token: write`;
 - tag/branch rules permit the release App to create `v*` tags and
   `release/0.1.x`.
 
-Before release-train write mode, the workflow checks that the token exists and
-that `npm whoami` authenticates successfully. This only verifies token
-authentication; it does not prove write access to this package or guarantee
-that the tag-triggered publisher can finish. An administrator must confirm
-publish permission for `@revisium/revo-tui` and that the same secret is
-available to both workflows. Workflows never print credential values. Dry runs
-do not require release App/npm credentials and never write refs or publish
-packages.
+The release train does not probe npm authentication: `npm whoami` cannot verify
+OIDC. Authentication is established by npm during `npm publish` in the
+tag-triggered `npm-publish.yml` workflow. That workflow requires npm CLI 11.5.1
+or newer; Node 26.8.2 supplies a compatible runtime. Dry runs do not require
+release App credentials and never write refs or publish packages; they do not
+validate the npm Trusted Publisher connection.
 
 ## First alpha release
 
