@@ -1,0 +1,213 @@
+name: Publish TUI release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.repository }}-npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: ${{ github.repository == 'revisium/revo-tui' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Classify release tag
+        id: classify
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          tag="${REF#refs/tags/}"
+          if [[ "$tag" == "v0.0.0" ]]; then
+            echo "Skipping v0.0.0 bootstrap tag; that package version is already published."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$tag" =~ ^v0\.1\.0-alpha\.(0|[1-9][0-9]*)$ ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Skipping unsupported release tag: $tag"
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+
+      - name: Check out release commit
+        if: ${{ steps.classify.outputs.publish == 'true' }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        if: ${{ steps.classify.outputs.publish == 'true' }}
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 12.4.1
+
+      - name: Set up Node.js
+        if: ${{ steps.classify.outputs.publish == 'true' }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate tag, package, release branch, and registry state
+        id: release
+        if: ${{ steps.classify.outputs.publish == 'true' }}
+        env:
+          EXPECTED_VERSION: ${{ steps.classify.outputs.version }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          tag="${REF#refs/tags/}"
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          if [[ "$package_name" != "@revisium/revo-tui" ]]; then
+            echo "Unexpected package name: $package_name" >&2
+            exit 1
+          fi
+          if [[ "$package_version" != "$EXPECTED_VERSION" || "${tag#v}" != "$EXPECTED_VERSION" ]]; then
+            echo "Tag, expected, and package versions must match exactly." >&2
+            exit 1
+          fi
+
+          tag_commit="$(git rev-parse "${tag}^{commit}")"
+          if [[ "$tag_commit" != "$SHA" ]]; then
+            echo "The push event SHA does not match the release tag target." >&2
+            exit 1
+          fi
+
+          release_branch="release/0.1.x"
+          git fetch --no-tags origin "refs/heads/${release_branch}:refs/remotes/origin/${release_branch}"
+          if ! git merge-base --is-ancestor "$tag_commit" "refs/remotes/origin/${release_branch}"; then
+            echo "The release tag is not on the expected ${release_branch} branch." >&2
+            exit 1
+          fi
+
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+
+          const version = process.env.EXPECTED_VERSION;
+          const outputFile = process.env.GITHUB_OUTPUT;
+          if (!outputFile) throw new Error('GITHUB_OUTPUT is unavailable');
+          const url = `https://registry.npmjs.org/@revisium%2frevo-tui/${version}`;
+          const response = await fetch(url, {
+            redirect: 'error',
+            signal: AbortSignal.timeout(15000),
+          });
+
+          if (response.status === 404) {
+            console.log(`@revisium/revo-tui@${version} is not published yet.`);
+            appendFileSync(outputFile, 'publish=true\n');
+            process.exit(0);
+          }
+          if (response.status === 200) {
+            console.log(
+              `@revisium/revo-tui@${version} already exists; skipping without verifying artifact identity.`,
+            );
+            appendFileSync(outputFile, 'publish=false\n');
+            process.exit(0);
+          }
+          throw new Error(`npm registry lookup failed with HTTP ${response.status}`);
+          NODE
+
+      - name: Install dependencies
+        if: ${{ steps.release.outputs.publish == 'true' }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify package
+        if: ${{ steps.release.outputs.publish == 'true' }}
+        run: pnpm verify
+
+      - name: Pack and inspect the exact release tarball
+        id: pack
+        if: ${{ steps.release.outputs.publish == 'true' }}
+        env:
+          EXPECTED_VERSION: ${{ steps.classify.outputs.version }}
+        run: |
+          set -euo pipefail
+          pack_dir="$RUNNER_TEMP/revo-tui-release"
+          mkdir -p "$pack_dir"
+          npm run prepack
+          npm pack --ignore-scripts --json --pack-destination "$pack_dir" > "$RUNNER_TEMP/npm-pack.json"
+          tarball_name="$(node -e 'const data = require(process.argv[1]); process.stdout.write(data[0].filename)' "$RUNNER_TEMP/npm-pack.json")"
+          tarball="$pack_dir/$tarball_name"
+
+          node --input-type=module - "$RUNNER_TEMP/npm-pack.json" "$tarball" <<'NODE'
+          import fs from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import path from 'node:path';
+
+          const [manifestPath, tarball] = process.argv.slice(2);
+          const packs = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          if (!Array.isArray(packs) || packs.length !== 1) {
+            throw new Error('npm pack must produce exactly one package.');
+          }
+          const [pack] = packs;
+          if (pack.filename !== path.basename(pack.filename)) {
+            throw new Error('npm pack returned a filename containing a path.');
+          }
+          const files = new Set(pack.files.map(({ path }) => path));
+          const requiredFiles = [
+            'bin/revo-tui.js',
+            'dist/launcher/cli.js',
+            'dist/launcher/index.js',
+            'dist/launcher/index.d.ts',
+            'dist/ui/main.js',
+          ];
+          for (const file of requiredFiles) {
+            if (!files.has(file)) throw new Error(`Packed artifact is missing ${file}`);
+          }
+
+          const archiveFiles = new Set(
+            execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' })
+              .trim()
+              .split('\n'),
+          );
+          for (const file of requiredFiles) {
+            if (!archiveFiles.has(`package/${file}`)) {
+              throw new Error(`Tarball archive is missing package/${file}`);
+            }
+          }
+
+          const packedPackage = JSON.parse(
+            execFileSync('tar', ['-xOf', tarball, 'package/package.json'], { encoding: 'utf8' }),
+          );
+          if (packedPackage.name !== '@revisium/revo-tui') {
+            throw new Error(`Unexpected packed package name: ${packedPackage.name}`);
+          }
+          if (packedPackage.version !== process.env.EXPECTED_VERSION) {
+            throw new Error(`Unexpected packed package version: ${packedPackage.version}`);
+          }
+          const integrity = `sha512-${createHash('sha512').update(fs.readFileSync(tarball)).digest('base64')}`;
+          if (integrity !== pack.integrity) {
+            throw new Error('Tarball SHA-512 does not match npm pack integrity.');
+          }
+          console.log(`Validated ${tarball} (${pack.integrity})`);
+          NODE
+
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+
+      - name: Publish verified tarball to npm alpha
+        if: ${{ steps.release.outputs.publish == 'true' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$NODE_AUTH_TOKEN" ]]; then
+            echo "NPM_TOKEN is required to publish @revisium/revo-tui." >&2
+            exit 1
+          fi
+          npm publish "$TARBALL" --access public --tag alpha --provenance
