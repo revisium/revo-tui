@@ -223,7 +223,13 @@ export class GraphqlDialogueBackend implements DialogueBackend {
     signal?: AbortSignal,
   ): Promise<DialogueTurn> {
     return this.request(async () => {
-      const response = await this.sdk(signal).SendDialogue({ input })
+      const response = await this.sdk(signal).SendDialogue({
+        input: {
+          commandId: input.commandId,
+          dialogueId: input.dialogueId,
+          prompt: input.prompt,
+        },
+      })
       return decode(() => turnOf(response.sendDialogueMessage))
     }, signal)
   }
@@ -233,7 +239,14 @@ export class GraphqlDialogueBackend implements DialogueBackend {
     signal?: AbortSignal,
   ): Promise<DialogueInteraction> {
     return this.request(async () => {
-      const response = await this.sdk(signal).RespondDialogue({ input })
+      const response = await this.sdk(signal).RespondDialogue({
+        input: {
+          commandId: input.commandId,
+          dialogueId: input.dialogueId,
+          interactionId: input.interactionId,
+          response: input.response,
+        },
+      })
       return decode(() => interactionOf(response.respondDialogue))
     }, signal)
   }

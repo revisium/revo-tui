@@ -1,6 +1,9 @@
 import { makeAutoObservable, runInAction } from 'mobx'
 import { AgentSelectionModel } from '../../../entities/agent/index.js'
-import type { AgentConfigurationsService } from '../../../modules/agent-configurations/index.js'
+import type {
+  AgentConfigurationsService,
+  AgentLaunchConfiguration,
+} from '../../../modules/agent-configurations/index.js'
 import {
   DialogueError,
   type DialogueActions,
@@ -21,7 +24,7 @@ interface NewDialogueAttempt {
   readonly agentId: string
   readonly agentVersion: string
   readonly agentInstallationId: string
-  readonly selections: Readonly<Record<string, string | boolean>>
+  readonly configuration: AgentLaunchConfiguration
 }
 
 interface RetrySendAttempt {
@@ -187,7 +190,10 @@ export class ComposeViewModel {
         agentId: agent.id,
         agentVersion: agent.version,
         agentInstallationId: agent.installationId,
-        selections: Object.freeze({ ...configuration.selections }),
+        configuration: Object.freeze({
+          catalogRevision: configuration.catalogRevision,
+          selections: Object.freeze({ ...configuration.selections }),
+        }),
       })
     } catch (error) {
       this.validationError = errorMessageOf(error)
@@ -236,7 +242,10 @@ export class ComposeViewModel {
           agentId: attempt.agentId,
           agentVersion: attempt.agentVersion,
           agentInstallationId: attempt.agentInstallationId,
-          agentConfiguration: attempt.selections,
+          agentConfiguration: {
+            catalogRevision: attempt.configuration.catalogRevision,
+            selections: attempt.configuration.selections,
+          },
         },
         signal,
       )
