@@ -17,6 +17,7 @@ import {
   DialogueError,
   PersistentCommandStorage,
 } from '../../../modules/dialogue-engine/index.js'
+import { SqliteStorageLock } from './SqliteStorageLock.js'
 
 const PRIVATE_DIRECTORY_MODE = 0o700
 const PRIVATE_FILE_MODE = 0o600
@@ -27,7 +28,7 @@ export class FileCommandStorage implements DialogueCommandStorage {
   private readonly directoryPath: string
   private readonly filePath: string
   private readonly lockPath: string
-  private lockHandle: FileHandle | undefined
+  private lock: SqliteStorageLock | undefined
   private commands = PersistentCommandStorage.empty()
   private pendingWrite: Promise<void> = Promise.resolve()
   private state: StorageState = 'closed'
@@ -36,7 +37,7 @@ export class FileCommandStorage implements DialogueCommandStorage {
     const namespace = endpointNamespace(endpoint)
     this.directoryPath = join(resolve(dataDirectory), 'command-storage')
     this.filePath = join(this.directoryPath, `${namespace}.json`)
-    this.lockPath = join(this.directoryPath, `${namespace}.lock`)
+    this.lockPath = join(this.directoryPath, `${namespace}.lock.sqlite`)
   }
 
   public async open(): Promise<void> {
@@ -49,13 +50,13 @@ export class FileCommandStorage implements DialogueCommandStorage {
         mode: PRIVATE_DIRECTORY_MODE,
       })
       await assertPrivateDirectory(this.directoryPath)
-      this.lockHandle = await acquireLock(this.lockPath)
+      this.lock = await SqliteStorageLock.acquire(this.lockPath)
       this.commands = await readCommands(this.filePath)
       this.pendingWrite = Promise.resolve()
       this.state = 'open'
     } catch (error) {
       try {
-        await this.releaseLock()
+        this.releaseLock()
       } catch {
         // The original safe diagnostic has priority over lock cleanup failure.
       } finally {
@@ -105,7 +106,7 @@ export class FileCommandStorage implements DialogueCommandStorage {
       failure = error
     }
     try {
-      await this.releaseLock()
+      this.releaseLock()
     } catch (error) {
       failure ??= error
     } finally {
@@ -133,18 +134,10 @@ export class FileCommandStorage implements DialogueCommandStorage {
     if (this.state !== 'open') throw unavailableError()
   }
 
-  private async releaseLock(): Promise<void> {
-    const handle = this.lockHandle
-    this.lockHandle = undefined
-    if (handle === undefined) return
-    let closeError: unknown
-    try {
-      await handle.close()
-    } catch (error) {
-      closeError = error
-    }
-    await rm(this.lockPath, { force: true })
-    if (closeError !== undefined) throw closeError
+  private releaseLock(): void {
+    const lock = this.lock
+    this.lock = undefined
+    lock?.release()
   }
 }
 
@@ -154,21 +147,6 @@ function validatedCommand(
   const [copy] = PersistentCommandStorage.empty().save(command).commands
   if (copy === undefined) throw corruptError()
   return copy
-}
-
-async function acquireLock(path: string): Promise<FileHandle> {
-  try {
-    return await open(path, 'wx', PRIVATE_FILE_MODE)
-  } catch (error) {
-    if (errorCode(error) === 'EEXIST') {
-      throw new DialogueError(
-        'storage-locked',
-        'Pending dialogue commands are already open in another process.',
-        'stop',
-      )
-    }
-    throw error
-  }
 }
 
 async function readCommands(path: string): Promise<PersistentCommandStorage> {

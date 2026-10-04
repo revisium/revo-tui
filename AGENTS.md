@@ -4,7 +4,8 @@ Revo TUI is a terminal client. It does not start or update Revo Core, own provid
 
 - Use Node 26.8.2, pnpm 12.4.1, and the exact dependency versions in `package.json`.
 - Do not add automated tests for the TUI, launcher, helpers, or engines. Validate runtime behavior manually in an isolated lab.
-- Keep CI gates strict: formatting, zero-warning lint, strict typecheck, Steiger boundaries, build, and Sonar inspection. GraphQL codegen becomes required with the first GraphQL change.
+- The one owner-approved exception is the pending-command storage lock check in `test/` (`pnpm test:storage-lock`). It proves that a second process is refused with `storage-locked` and that the lock is free with the outbox intact after the holder is killed. Do not extend it or add other automated tests.
+- Keep CI gates strict: formatting, zero-warning lint, strict typecheck, Steiger boundaries, build, Sonar inspection, and the storage lock check on Linux x64/arm64 and macOS arm64/x64. GraphQL codegen becomes required with the first GraphQL change.
 - Add dependencies only for current production behavior. Do not publish packages or change credentials as part of development.
 
 ## Architecture

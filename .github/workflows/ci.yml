@@ -86,3 +86,42 @@ jobs:
           SONAR_PR_KEY: ${{ github.event.pull_request.number }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: pnpm sonar:issues:local
+
+  storage-lock:
+    name: storage-lock (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 12.4.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Report SQLite runtime
+        run: >-
+          pnpm exec bun -e 'import { Database } from "bun:sqlite";
+          const row = new Database(":memory:").query("SELECT sqlite_version() AS version").get();
+          console.log(`SQLite ${row.version} on ${process.platform}-${process.arch}`)'
+
+      - name: Check storage lock
+        run: pnpm test:storage-lock
