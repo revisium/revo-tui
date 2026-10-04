@@ -17,6 +17,7 @@ import {
   DialogueError,
   PersistentCommandStorage,
 } from '../../../modules/dialogue-engine/index.js'
+import { errorCode } from './errorCode.js'
 import { SqliteStorageLock } from './SqliteStorageLock.js'
 
 const PRIVATE_DIRECTORY_MODE = 0o700
@@ -250,9 +251,4 @@ function unavailableError(): DialogueError {
     'Pending dialogue command storage is unavailable.',
     'stop',
   )
-}
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null || !('code' in error)) return
-  return typeof error.code === 'string' ? error.code : undefined
 }

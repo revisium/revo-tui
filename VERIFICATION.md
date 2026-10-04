@@ -20,7 +20,7 @@ Runtime behavior is checked manually for each implementation task in a dedicated
 
 `pnpm test:storage-lock` is the only automated test, approved by the owner as an exception to the manual-validation rule. It runs the real `FileCommandStorage` adapter under Bun's built-in test runner with a second Bun process holding the storage, and proves that:
 
-- a second process opening the same storage is refused with `storage-locked` without waiting;
+- a second process opening the same storage is refused with `storage-locked` without waiting, when the lock database already exists from an earlier run;
 - after the holder is killed with `SIGKILL`, the next process acquires the lock at once and loads the unsent commands from the JSON outbox.
 
 CI runs it on `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15` and `macos-15-intel` and prints the SQLite version in use: Bun's bundled SQLite on Linux and the system SQLite on macOS. It is the only runtime behavior that CI proves on macOS; everything else in the TUI stays manually validated.

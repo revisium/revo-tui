@@ -31,6 +31,12 @@ export class StorageLockLab {
     return new StorageLockLab(dataDirectory)
   }
 
+  public async leaveStorageOfEarlierRun(): Promise<void> {
+    const storage = new FileCommandStorage(this.dataDirectory, ENDPOINT)
+    await storage.open()
+    await storage.close()
+  }
+
   public async startHolder(
     commands: readonly PendingDialogueCommand[],
   ): Promise<StorageHolder> {

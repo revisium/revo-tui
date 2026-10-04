@@ -21,6 +21,7 @@ describe('pending command storage lock', () => {
   })
 
   test('refuses a second process while another process holds the storage', async () => {
+    await lab.leaveStorageOfEarlierRun()
     await lab.startHolder([unsentMessage])
 
     expect(await lab.openStorage()).toEqual({ refused: 'storage-locked' })

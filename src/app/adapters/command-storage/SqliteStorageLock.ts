@@ -1,7 +1,7 @@
 import { Database, SQLiteError } from 'bun:sqlite'
-import { constants } from 'node:fs'
-import { open } from 'node:fs/promises'
+import { lstat, open } from 'node:fs/promises'
 import { DialogueError } from '../../../modules/dialogue-engine/index.js'
+import { errorCode } from './errorCode.js'
 
 const PRIVATE_FILE_MODE = 0o600
 const SQLITE_BUSY = 5
@@ -17,7 +17,7 @@ export class SqliteStorageLock {
   private constructor(private readonly database: Database) {}
 
   public static async acquire(path: string): Promise<SqliteStorageLock> {
-    await createPrivateFile(path)
+    await ensurePrivateFile(path)
     return new SqliteStorageLock(lockDatabase(path))
   }
 
@@ -26,13 +26,26 @@ export class SqliteStorageLock {
   }
 }
 
-async function createPrivateFile(path: string): Promise<void> {
-  const file = await open(
-    path,
-    constants.O_RDWR | constants.O_CREAT | constants.O_NOFOLLOW,
-    PRIVATE_FILE_MODE,
-  )
-  await file.close()
+// Closing any descriptor of a file drops this process's locks on it, so only SQLite opens an existing lock file.
+async function ensurePrivateFile(path: string): Promise<void> {
+  try {
+    await (await open(path, 'wx', PRIVATE_FILE_MODE)).close()
+  } catch (error) {
+    if (errorCode(error) !== 'EEXIST') {
+      throw error
+    }
+    await assertRegularFile(path)
+  }
+}
+
+async function assertRegularFile(path: string): Promise<void> {
+  if (!(await lstat(path)).isFile()) {
+    throw new DialogueError(
+      'storage-unavailable',
+      'Pending command lock file is not a regular file.',
+      'stop',
+    )
+  }
 }
 
 function lockDatabase(path: string): Database {
