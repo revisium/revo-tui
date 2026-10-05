@@ -7,5 +7,6 @@ Production source follows these ownership boundaries:
 - `src/app/`: Bun entrypoint, providers, dependency registration, and shutdown.
 - `src/pages`, `src/widgets`, `src/features`, `src/entities`, `src/shared`: FSD application layers.
 - `src/modules/`: framework-independent observable requests, agent configuration, GraphQL subscriptions, and dialogue engine.
+- `test/`: the storage lock check and its process support, the only automated test (see `VERIFICATION.md`).
 
 Use public `index.ts` entrypoints between slices and modules. Avoid generic `utils`, shared type dumps, wrappers without a current boundary, and deep imports into dependencies. Keep fields, constructor, public methods, then private methods in classes, with one abstraction level per method.

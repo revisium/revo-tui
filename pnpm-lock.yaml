@@ -233,6 +233,9 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
+      bun-types:
+        specifier: 1.4.2
+        version: 1.4.2
       eslint:
         specifier: 10.5.0
         version: 10.5.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1492,6 +1495,9 @@ packages:
     resolution: {integrity: sha512-3gM7PpVWLyrwxWjcilSiGuhWanhZivvo6l0u573NziPH6f/gwk6McbaYgn7oJWov6pKGRTDbrg94W5DcJsKTtQ==}
     peerDependencies:
       typescript: ^5
+
+  bun-types@1.4.2:
+    resolution: {integrity: sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w==}
 
   bun@1.4.2:
     resolution: {integrity: sha512-TrSXo6HJfIEaczpb3kjX82I2pL47vK1QUNmHRCUdz9IzaOwa9lzOXSWwu2l18YHE3sNfGRapVLd4nNm+22vVVA==}
@@ -4789,6 +4795,10 @@ snapshots:
   bun-ffi-structs@0.3.1(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
+
+  bun-types@1.4.2:
+    dependencies:
+      '@types/node': 26.1.2
 
   bun@1.4.2:
     optionalDependencies:
