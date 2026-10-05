@@ -1,9 +1,10 @@
-import { spawn, type ChildProcess } from 'node:child_process'
+import { spawn, type ChildProcessByStdio } from 'node:child_process'
 import { once } from 'node:events'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import type { Readable, Writable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import { FileCommandStorage } from '../../src/app/adapters/command-storage/index.js'
 import {
@@ -11,7 +12,11 @@ import {
   type DialogueErrorCode,
   type PendingDialogueCommand,
 } from '../../src/modules/dialogue-engine/index.js'
-import { HOLDER_READY } from './holdStorage.js'
+import {
+  HOLDER_HELD,
+  HOLDER_WAITING,
+  type HolderOutcome,
+} from './holdStorage.js'
 
 const ENDPOINT = 'https://storage-lock.invalid/graphql'
 const HOLDER_ENTRY = fileURLToPath(new URL('holdStorage.ts', import.meta.url))
@@ -40,13 +45,22 @@ export class StorageLockLab {
   public async startHolder(
     commands: readonly PendingDialogueCommand[],
   ): Promise<StorageHolder> {
-    const holder = await StorageHolder.start([
-      this.dataDirectory,
-      ENDPOINT,
-      JSON.stringify(commands),
-    ])
-    this.holders.push(holder)
+    const holder = await this.spawnHolder(commands)
+    const outcome = await holder.open()
+    if (outcome !== HOLDER_HELD) {
+      throw new Error(`The storage holder was refused with ${outcome}.`)
+    }
     return holder
+  }
+
+  public async startTwoHoldersAtOnce(
+    times: number,
+  ): Promise<HolderOutcome[][]> {
+    const outcomes: HolderOutcome[][] = []
+    for (let start = 0; start < times; start += 1) {
+      outcomes.push(await this.raceTwoHolders())
+    }
+    return outcomes
   }
 
   public async openStorage(): Promise<OpenOutcome> {
@@ -68,21 +82,54 @@ export class StorageLockLab {
     await Promise.all(this.storages.map((storage) => storage.close()))
     await rm(this.dataDirectory, { recursive: true, force: true })
   }
+
+  private async raceTwoHolders(): Promise<HolderOutcome[]> {
+    const holders = await Promise.all([
+      this.spawnHolder([]),
+      this.spawnHolder([]),
+    ])
+    const outcomes = await Promise.all(holders.map((holder) => holder.open()))
+    await Promise.all(holders.map((holder) => holder.killAbruptly()))
+    return outcomes.toSorted((left, right) => left.localeCompare(right))
+  }
+
+  private async spawnHolder(
+    commands: readonly PendingDialogueCommand[],
+  ): Promise<StorageHolder> {
+    const holder = await StorageHolder.spawn([
+      this.dataDirectory,
+      ENDPOINT,
+      JSON.stringify(commands),
+    ])
+    this.holders.push(holder)
+    return holder
+  }
 }
 
 export class StorageHolder {
   private constructor(
-    private readonly child: ChildProcess,
+    private readonly child: ChildProcessByStdio<Writable, Readable, null>,
+    private readonly lines: AsyncIterator<string>,
     private readonly exited: Promise<unknown>,
   ) {}
 
-  public static async start(args: readonly string[]): Promise<StorageHolder> {
+  public static async spawn(args: readonly string[]): Promise<StorageHolder> {
     const child = spawn(process.execPath, [HOLDER_ENTRY, ...args], {
-      stdio: ['ignore', 'pipe', 'inherit'],
+      stdio: ['pipe', 'pipe', 'inherit'],
     })
-    const holder = new StorageHolder(child, once(child, 'exit'))
-    await holder.waitUntilReady()
+    const lines = createInterface({ input: child.stdout })[
+      Symbol.asyncIterator
+    ]()
+    const holder = new StorageHolder(child, lines, once(child, 'exit'))
+    if ((await holder.nextLine()) !== HOLDER_WAITING) {
+      throw new Error('The storage holder did not start.')
+    }
     return holder
+  }
+
+  public async open(): Promise<HolderOutcome> {
+    this.child.stdin.write('open\n')
+    return (await this.nextLine()) as HolderOutcome
   }
 
   public async killAbruptly(): Promise<void> {
@@ -92,15 +139,11 @@ export class StorageHolder {
     await this.exited
   }
 
-  private async waitUntilReady(): Promise<void> {
-    if (this.child.stdout === null) {
-      throw new Error('The storage holder has no output stream.')
+  private async nextLine(): Promise<string> {
+    const line = await this.lines.next()
+    if (line.done === true) {
+      throw new Error('The storage holder exited unexpectedly.')
     }
-    for await (const line of createInterface({ input: this.child.stdout })) {
-      if (line === HOLDER_READY) {
-        return
-      }
-    }
-    throw new Error('The storage holder exited before it held the storage.')
+    return line.value
   }
 }
