@@ -54,17 +54,16 @@ async function assertRegularFile(path: string): Promise<void> {
 }
 
 // Two openers that start together can each keep a shared lock that blocks the other's write, so both close and retry.
-async function lockDatabase(path: string): Promise<Database> {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return openExclusively(path)
-    } catch (error) {
-      if (!isBusy(error) || attempt === LOCK_ATTEMPTS) {
-        throw lockErrorOf(error)
-      }
+async function lockDatabase(path: string, attempt = 1): Promise<Database> {
+  try {
+    return openExclusively(path)
+  } catch (error) {
+    if (!isBusy(error) || attempt === LOCK_ATTEMPTS) {
+      throw lockErrorOf(error)
     }
-    await sleep(randomInt(MIN_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS + 1))
   }
+  await sleep(randomInt(MIN_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS + 1))
+  return lockDatabase(path, attempt + 1)
 }
 
 function openExclusively(path: string): Database {
