@@ -5,15 +5,26 @@ Run the canonical checks with Node 26.8.2 and pnpm 12.4.1 in an isolated contain
 ```bash
 pnpm install --frozen-lockfile
 pnpm verify
+pnpm test:storage-lock
 bash -n scripts/sonar-issues-local.sh
 git diff --check
 ```
 
 `verify:sources` requires strict TypeScript, Steiger, and a launcher build. Formatting and zero-warning ESLint always run. GraphQL codegen is N/A until the first GraphQL change.
 
-CI scans the exact checked-out revision, waits for the Sonar quality gate, verifies the analyzed revision, and fails on open issues. Sonar credentials are required in CI and must never be printed or committed. Coverage is excluded while the TUI intentionally has no automated tests; bugs, vulnerabilities, smells, and duplication remain analyzed.
+CI scans the exact checked-out revision, waits for the Sonar quality gate, verifies the analyzed revision, and fails on open issues. Sonar credentials are required in CI and must never be printed or committed. Coverage is not collected because the storage lock check is the only automated test; bugs, vulnerabilities, smells, and duplication remain analyzed.
 
 Runtime behavior is checked manually for each implementation task in a dedicated lab. Do not add an automated TUI test suite.
+
+## Storage lock check
+
+`pnpm test:storage-lock` is the only automated test, approved by the owner as an exception to the manual-validation rule. It runs the real `FileCommandStorage` adapter under Bun's built-in test runner with separate Bun processes holding the storage, and proves that:
+
+- a second process opening the same storage is refused with `storage-locked` within the test's 2-second limit, when the lock database already exists from an earlier run. The lock retries a busy database at most five times after a random 5-25 ms pause, so a refusal takes about 150 ms at most, and a regression to a long busy wait fails the test;
+- when two processes start at the same moment with no holder, exactly one of them holds the storage and the other is refused with `storage-locked`, in each of 20 consecutive starts;
+- after the holder is killed with `SIGKILL`, the next process acquires the lock at once and loads the unsent commands from the JSON outbox.
+
+CI runs it on `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15` and `macos-15-intel` and prints the SQLite version in use: Bun's bundled SQLite on Linux and the system SQLite on macOS. It is the only runtime behavior that CI proves on macOS; everything else in the TUI stays manually validated.
 
 ## Package release checks
 

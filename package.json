@@ -40,7 +40,8 @@
     "gql:codegen": "graphql-codegen --config codegen.ts",
     "gql:codegen:check": "pnpm gql:codegen && git diff --exit-code -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ src/modules/dialogue-engine/transport/graphql/__generated__ && codegen_untracked=\"$(git ls-files --others --exclude-standard -- src/__generated__/schema.graphql src/modules/agent-configurations/transport/graphql/__generated__ src/modules/dialogue-engine/transport/graphql/__generated__)\" && test -z \"$codegen_untracked\"",
     "verify": "pnpm gql:codegen:check && pnpm format:check && pnpm lint && pnpm verify:sources",
-    "sonar:issues:local": "bash scripts/sonar-issues-local.sh"
+    "sonar:issues:local": "bash scripts/sonar-issues-local.sh",
+    "test:storage-lock": "pnpm exec bun test ./test"
   },
   "dependencies": {
     "@opentui/core": "0.5.11",
@@ -67,6 +68,7 @@
     "@eslint-react/eslint-plugin": "3.0.0",
     "@types/node": "26.1.2",
     "@types/react": "19.3.0",
+    "bun-types": "1.4.2",
     "eslint": "10.5.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-sonarjs": "4.1.0",

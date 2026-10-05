@@ -5,13 +5,14 @@
     "jsxImportSource": "@opentui/react",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node", "react"]
+    "types": ["node", "react", "bun-types/sqlite", "bun-types/test"]
   },
   "include": [
     "src/app/**/*.ts",
     "src/app/**/*.tsx",
     "src/modules/**/*.ts",
     "src/shared/**/*.ts",
-    "src/shared/**/*.tsx"
+    "src/shared/**/*.tsx",
+    "test/**/*.ts"
   ]
 }
