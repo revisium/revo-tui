@@ -1,5 +1,8 @@
 import { makeAutoObservable, runInAction } from 'mobx'
-import { AgentSelectionModel } from '../../../entities/agent/index.js'
+import {
+  AgentSelectionError,
+  AgentSelectionModel,
+} from '../../../entities/agent/index.js'
 import type {
   AgentConfigurationsService,
   AgentLaunchConfiguration,
@@ -177,10 +180,11 @@ export class ComposeViewModel {
     )
       return
     let attempt: NewDialogueAttempt
+    this.selection.dismissNotice()
     try {
       const agent = this.selection.selectedAgent
       if (agent === undefined)
-        throw new Error('Choose an agent configuration first.')
+        throw new AgentSelectionError('Choose an agent configuration first.')
       const configuration = this.selection.configuration
       const prompt = this.prompt
       attempt = Object.freeze({
@@ -196,7 +200,10 @@ export class ComposeViewModel {
         }),
       })
     } catch (error) {
-      this.validationError = errorMessageOf(error)
+      this.validationError =
+        error instanceof AgentSelectionError
+          ? error.message
+          : errorMessageOf(error)
       return
     }
     await this.execute(attempt)

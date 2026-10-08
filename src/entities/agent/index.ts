@@ -1,4 +1,7 @@
-export { AgentSelectionModel } from './model/AgentSelectionModel.js'
+export {
+  AgentSelectionError,
+  AgentSelectionModel,
+} from './model/AgentSelectionModel.js'
 export type {
   AgentSelectionOption,
   SelectableAgent,
