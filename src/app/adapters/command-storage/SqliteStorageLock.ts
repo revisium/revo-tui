@@ -88,7 +88,7 @@ function lockErrorOf(error: unknown): unknown {
   if (isBusy(error)) {
     return new DialogueError(
       'storage-locked',
-      'Pending dialogue commands are already open in another process.',
+      'Pending dialogue commands are already open in another process. Another Revo TUI is probably running; close it and try again.',
       'stop',
     )
   }
