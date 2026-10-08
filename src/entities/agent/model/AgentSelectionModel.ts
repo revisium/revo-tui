@@ -36,7 +36,6 @@ export class AgentSelectionModel {
   private selectedRevision = ''
   private readonly selections = new Map<string, string | boolean>()
   private noticeMessage = ''
-  private chosenByUser = false
   private selectedLabel = ''
   private optionIndex = 0
   private stopCatalogReaction: (() => void) | undefined
@@ -120,7 +119,6 @@ export class AgentSelectionModel {
   }
 
   public selectAgent(identity: string): void {
-    this.chosenByUser = true
     this.applyAgent(identity)
   }
 
@@ -236,14 +234,11 @@ export class AgentSelectionModel {
   }
 
   private replaceUnavailableAgent(): void {
-    const wasChosen = this.chosenByUser
     const previous = this.selectedLabel
     this.selectedIdentity = ''
     this.selectedRevision = ''
     this.selections.clear()
-    this.chosenByUser = false
     this.selectFirstAgent()
-    if (!wasChosen) return
     const next = this.selectedAgent
     this.noticeMessage =
       next === undefined
@@ -260,6 +255,7 @@ export class AgentSelectionModel {
         dropped.push(option?.name ?? id)
       }
     }
+    this.selectedLabel = this.selectedAgent?.label ?? this.selectedLabel
     this.selectedRevision = catalog.catalogRevision
     this.optionIndex = Math.min(
       this.optionIndex,

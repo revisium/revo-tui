@@ -15,7 +15,7 @@ try {
   process.exitCode = await application.run()
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error)
-  writeSync(STDERR_FD, `Revo TUI failed: ${message}\n`)
+  reportFailure(message)
   process.exitCode = 1
 }
 
@@ -29,4 +29,12 @@ function requiredEnvironment(name: string): string {
   }
 
   return value
+}
+
+function reportFailure(message: string): void {
+  try {
+    writeSync(STDERR_FD, `Revo TUI failed: ${message}\n`)
+  } catch {
+    return
+  }
 }

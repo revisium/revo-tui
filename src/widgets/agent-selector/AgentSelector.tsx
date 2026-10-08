@@ -9,7 +9,13 @@ export const AgentSelector = observer(function AgentSelector({
 }: AgentSelectorProps) {
   if (model.loading) return <text>Loading agents…</text>
   if (model.error) return <text fg="#ff7777">{model.error}</text>
-  if (!model.agents.length) return <text>No agents available.</text>
+  if (!model.agents.length)
+    return (
+      <box flexDirection="column">
+        {model.notice ? <text fg="#e5c07b">{model.notice}</text> : null}
+        <text>No agents available.</text>
+      </box>
+    )
   return (
     <box flexDirection="column">
       {model.notice ? <text fg="#e5c07b">{model.notice}</text> : null}
