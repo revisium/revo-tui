@@ -9,8 +9,11 @@ import { createElement } from 'react'
 import { App } from '../App.js'
 import { ApplicationErrorBoundary } from '../ApplicationErrorBoundary.js'
 import type { AppViewModel } from '../model/AppViewModel.js'
+import { TerminalPresence } from './TerminalPresence.js'
 
 const EXIT_SUCCESS = 0
+const EXIT_FAILURE = 1
+const FORCED_EXIT_DELAY_MS = 5_000
 const APP_SIGNALS = ['SIGHUP', 'SIGINT', 'SIGTERM'] as const
 
 type AppSignal = (typeof APP_SIGNALS)[number]
@@ -32,6 +35,7 @@ export class ApplicationLifecycle {
   readonly #initializeServices: () => Promise<void>
   readonly #disposeServices: () => Promise<void>
   readonly #signalHandlers = new Map<AppSignal, () => void>()
+  readonly #presence = new TerminalPresence()
   #renderer: CliRenderer | undefined
   #root: Root | undefined
   #resolve: ((code: number) => void) | undefined
@@ -110,6 +114,8 @@ export class ApplicationLifecycle {
       this.#signalHandlers.set(signal, handler)
       process.on(signal, handler)
     }
+
+    this.#presence.start(() => this.quit())
   }
 
   private readonly onRenderError = (event: CliRendererErrorEvent): void => {
@@ -144,6 +150,7 @@ export class ApplicationLifecycle {
 
     this.#closing = true
     this.unbindSignals()
+    this.forceExitIfStuck(code)
     this.finishClose(code, error)
   }
 
@@ -201,7 +208,14 @@ export class ApplicationLifecycle {
     return cleanupError
   }
 
+  private forceExitIfStuck(code: number | undefined): void {
+    setTimeout(() => {
+      process.exit(code ?? EXIT_FAILURE)
+    }, FORCED_EXIT_DELAY_MS).unref()
+  }
+
   private unbindSignals(): void {
+    this.#presence.stop()
     for (const signal of APP_SIGNALS) {
       const handler = this.#signalHandlers.get(signal)
 

@@ -22,8 +22,7 @@ export const AgentSelector = observer(function AgentSelector({
           }
         >
           {model.selectedAgent?.identity === agent.identity ? '› ' : '  '}
-          {agent.name} id={agent.id} version={agent.version} installation=
-          {agent.installationId}
+          {agent.label}
         </text>
       ))}
       {model.selectedAgent

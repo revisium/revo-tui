@@ -1,4 +1,5 @@
 import { makeAutoObservable, reaction } from 'mobx'
+import { agentLabelOf } from './agent-label.js'
 import type {
   AgentConfigurationOption,
   AgentConfigurationsService,
@@ -10,6 +11,13 @@ export interface AgentSelectionOption {
   readonly override?: string | boolean
 }
 
+export class AgentSelectionError extends Error {
+  public constructor(message: string) {
+    super(message)
+    this.name = 'AgentSelectionError'
+  }
+}
+
 export interface SelectableAgent {
   readonly id: string
   readonly version: string
@@ -17,6 +25,7 @@ export interface SelectableAgent {
   readonly name: string
   readonly description: string
   readonly identity: string
+  readonly label: string
 }
 
 export class AgentSelectionModel {
@@ -35,6 +44,11 @@ export class AgentSelectionModel {
     return this.service.availableAgents.map((agent) => ({
       ...agent,
       identity: identityOf(agent.id, agent.version, agent.installationId),
+      label: agentLabelOf(
+        agent.name,
+        this.service.catalogFor(agent.id, agent.version, agent.installationId)
+          ?.launch.reportedVersion,
+      ),
     }))
   }
 
@@ -77,10 +91,14 @@ export class AgentSelectionModel {
   public get configuration(): AgentLaunchConfiguration {
     const agent = this.selectedAgent
     if (this.service.readiness !== 'READY' || this.selectedRevision === '') {
-      throw new Error('Choose an available agent configuration first.')
+      throw new AgentSelectionError(
+        'Choose an available agent configuration first.',
+      )
     }
     if (agent === undefined) {
-      throw new Error('The selected agent is no longer available.')
+      throw new AgentSelectionError(
+        'The selected agent is no longer available.',
+      )
     }
     const catalog = this.service.catalogFor(
       agent.id,
@@ -88,7 +106,7 @@ export class AgentSelectionModel {
       agent.installationId,
     )
     if (catalog?.catalogRevision !== this.selectedRevision) {
-      throw new Error(
+      throw new AgentSelectionError(
         'The selected agent configuration changed. Select it again.',
       )
     }
@@ -113,14 +131,16 @@ export class AgentSelectionModel {
       (candidate) => candidate.identity === identity,
     )
     if (agent === undefined)
-      throw new Error('The selected agent is unavailable.')
+      throw new AgentSelectionError('The selected agent is unavailable.')
     const catalog = this.service.catalogFor(
       agent.id,
       agent.version,
       agent.installationId,
     )
     if (catalog === undefined)
-      throw new Error('The selected agent catalog is unavailable.')
+      throw new AgentSelectionError(
+        'The selected agent catalog is unavailable.',
+      )
 
     if (
       this.selectedIdentity !== identity ||
@@ -172,7 +192,7 @@ export class AgentSelectionModel {
       (candidate) => candidate.option.id === id,
     )
     if (selection === undefined)
-      throw new Error('The selected option is unavailable.')
+      throw new AgentSelectionError('The selected option is unavailable.')
     assertOptionValue(selection.option, value)
     this.selections.set(id, value)
   }
@@ -183,6 +203,17 @@ export class AgentSelectionModel {
   }
 
   private synchronizeSelection(): void {
+    this.validateSelection()
+    if (this.selectedIdentity === '') this.selectFirstAgent()
+  }
+
+  private selectFirstAgent(): void {
+    if (this.service.readiness !== 'READY') return
+    const first = this.agents[0]
+    if (first !== undefined) this.selectAgent(first.identity)
+  }
+
+  private validateSelection(): void {
     if (this.selectedIdentity === '') return
     const selected = this.selectedAgent
     if (selected === undefined) {
@@ -195,9 +226,7 @@ export class AgentSelectionModel {
       selected.installationId,
     )
     if (catalog?.catalogRevision !== this.selectedRevision) {
-      this.invalidate(
-        'The selected agent configuration changed. Select it again.',
-      )
+      this.selectAgent(selected.identity)
     }
   }
 
@@ -223,14 +252,14 @@ function assertOptionValue(
 ): void {
   if (option.kind === 'boolean') {
     if (typeof value !== 'boolean')
-      throw new Error('Expected a boolean option value.')
+      throw new AgentSelectionError('Expected a boolean option value.')
     return
   }
   if (
     typeof value !== 'string' ||
     !option.values.some((candidate) => candidate.value === value)
   ) {
-    throw new Error('The selected option value is unavailable.')
+    throw new AgentSelectionError('The selected option value is unavailable.')
   }
 }
 
@@ -241,14 +270,14 @@ function assertSelections(
   for (const [id, value] of selections) {
     const option = options.find((candidate) => candidate.id === id)
     if (option === undefined) {
-      throw new Error(
+      throw new AgentSelectionError(
         'The selected agent configuration changed. Select it again.',
       )
     }
     try {
       assertOptionValue(option, value)
     } catch {
-      throw new Error(
+      throw new AgentSelectionError(
         'The selected agent configuration changed. Select it again.',
       )
     }

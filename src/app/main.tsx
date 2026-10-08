@@ -17,6 +17,8 @@ try {
   process.exitCode = 1
 }
 
+process.exit()
+
 function requiredEnvironment(name: string): string {
   const value = process.env[name]
 
