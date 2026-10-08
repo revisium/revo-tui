@@ -11,10 +11,13 @@ export interface DialogueHistoryProps {
   readonly history: DialogueHistoryResourceView
   readonly bindScroll: (scroll: HistoryScrollPort | null) => void
 }
+const SILENT_WHEN_EMPTY_KINDS = new Set(['usage', 'result'])
+
 export const DialogueHistory = observer(function DialogueHistory({
   history,
   bindScroll,
 }: DialogueHistoryProps) {
+  const items = history.items.filter(isDisplayable)
   if (history.loading && history.items.length === 0)
     return <text>Loading history…</text>
   return (
@@ -28,10 +31,10 @@ export const DialogueHistory = observer(function DialogueHistory({
       stickyStart="bottom"
     >
       {history.error ? <text fg="#ff7777">{history.error}</text> : null}
-      {history.items.length === 0 ? (
+      {items.length === 0 ? (
         <text>No messages yet.</text>
       ) : (
-        history.items.map((item) => (
+        items.map((item) => (
           <text key={item.id}>
             {item.source}: {item.text}
           </text>
@@ -47,3 +50,10 @@ export const DialogueHistory = observer(function DialogueHistory({
     </scrollbox>
   )
 }) as (props: DialogueHistoryProps) => ReactElement
+
+function isDisplayable(item: { kind: string; text: string }): boolean {
+  return (
+    item.text.trim() !== '' ||
+    !SILENT_WHEN_EMPTY_KINDS.has(item.kind.toLowerCase())
+  )
+}
