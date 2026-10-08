@@ -180,6 +180,7 @@ export class ComposeViewModel {
     )
       return
     let attempt: NewDialogueAttempt
+    this.selection.dismissNotice()
     try {
       const agent = this.selection.selectedAgent
       if (agent === undefined)

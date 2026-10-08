@@ -12,6 +12,7 @@ export const AgentSelector = observer(function AgentSelector({
   if (!model.agents.length) return <text>No agents available.</text>
   return (
     <box flexDirection="column">
+      {model.notice ? <text fg="#e5c07b">{model.notice}</text> : null}
       {model.agents.map((agent) => (
         <text
           key={agent.identity}

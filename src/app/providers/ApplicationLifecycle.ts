@@ -150,7 +150,7 @@ export class ApplicationLifecycle {
 
     this.#closing = true
     this.unbindSignals()
-    this.forceExitIfStuck(code)
+    this.forceExitIfStuck()
     this.finishClose(code, error)
   }
 
@@ -208,9 +208,9 @@ export class ApplicationLifecycle {
     return cleanupError
   }
 
-  private forceExitIfStuck(code: number | undefined): void {
+  private forceExitIfStuck(): void {
     setTimeout(() => {
-      process.exit(code ?? EXIT_FAILURE)
+      process.exit(EXIT_FAILURE)
     }, FORCED_EXIT_DELAY_MS).unref()
   }
 

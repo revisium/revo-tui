@@ -1,3 +1,4 @@
+const VERSION_TOKEN = /^v?\d+(\.\d+)+(-[0-9A-Za-z.]+)?$/
 const ADAPTER_SUFFIX = ' ACP'
 
 export function agentLabelOf(
@@ -12,11 +13,7 @@ export function agentLabelOf(
 }
 
 function isVersion(token: string): boolean {
-  return token.includes('.') && token.split('.').every(isNumeric)
-}
-
-function isNumeric(part: string): boolean {
-  return part !== '' && Number.isInteger(Number(part))
+  return VERSION_TOKEN.test(token)
 }
 
 function productOf(reported: string): string | undefined {

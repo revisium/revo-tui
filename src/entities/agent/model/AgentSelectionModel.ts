@@ -1,6 +1,7 @@
 import { makeAutoObservable, reaction } from 'mobx'
 import { agentLabelOf } from './agent-label.js'
 import type {
+  AgentConfigurationCatalog,
   AgentConfigurationOption,
   AgentConfigurationsService,
   AgentLaunchConfiguration,
@@ -10,6 +11,8 @@ export interface AgentSelectionOption {
   readonly option: AgentConfigurationOption
   readonly override?: string | boolean
 }
+
+const SUFFIX_LENGTH = 6
 
 export class AgentSelectionError extends Error {
   public constructor(message: string) {
@@ -32,7 +35,9 @@ export class AgentSelectionModel {
   private selectedIdentity = ''
   private selectedRevision = ''
   private readonly selections = new Map<string, string | boolean>()
-  private invalidationMessage = ''
+  private noticeMessage = ''
+  private chosenByUser = false
+  private selectedLabel = ''
   private optionIndex = 0
   private stopCatalogReaction: (() => void) | undefined
 
@@ -41,7 +46,7 @@ export class AgentSelectionModel {
   }
 
   public get agents(): readonly SelectableAgent[] {
-    return this.service.availableAgents.map((agent) => ({
+    const agents = this.service.availableAgents.map((agent) => ({
       ...agent,
       identity: identityOf(agent.id, agent.version, agent.installationId),
       label: agentLabelOf(
@@ -50,6 +55,7 @@ export class AgentSelectionModel {
           ?.launch.reportedVersion,
       ),
     }))
+    return disambiguateLabels(agents)
   }
 
   public get selectedAgent(): SelectableAgent | undefined {
@@ -85,32 +91,19 @@ export class AgentSelectionModel {
   }
 
   public get error(): string {
-    return this.invalidationMessage || this.service.error
+    return this.service.error
+  }
+
+  public get notice(): string {
+    return this.noticeMessage
   }
 
   public get configuration(): AgentLaunchConfiguration {
-    const agent = this.selectedAgent
     if (this.service.readiness !== 'READY' || this.selectedRevision === '') {
       throw new AgentSelectionError(
         'Choose an available agent configuration first.',
       )
     }
-    if (agent === undefined) {
-      throw new AgentSelectionError(
-        'The selected agent is no longer available.',
-      )
-    }
-    const catalog = this.service.catalogFor(
-      agent.id,
-      agent.version,
-      agent.installationId,
-    )
-    if (catalog?.catalogRevision !== this.selectedRevision) {
-      throw new AgentSelectionError(
-        'The selected agent configuration changed. Select it again.',
-      )
-    }
-    assertSelections(catalog.options, this.selections)
     return {
       catalogRevision: this.selectedRevision,
       selections: Object.fromEntries(this.selections),
@@ -127,6 +120,15 @@ export class AgentSelectionModel {
   }
 
   public selectAgent(identity: string): void {
+    this.chosenByUser = true
+    this.applyAgent(identity)
+  }
+
+  public dismissNotice(): void {
+    this.noticeMessage = ''
+  }
+
+  private applyAgent(identity: string): void {
     const agent = this.agents.find(
       (candidate) => candidate.identity === identity,
     )
@@ -149,9 +151,10 @@ export class AgentSelectionModel {
       this.selections.clear()
     }
     this.selectedIdentity = identity
+    this.selectedLabel = agent.label
     this.selectedRevision = catalog.catalogRevision
     this.optionIndex = 0
-    this.invalidationMessage = ''
+    this.noticeMessage = ''
   }
 
   public selectNext(delta: number): void {
@@ -203,21 +206,20 @@ export class AgentSelectionModel {
   }
 
   private synchronizeSelection(): void {
-    this.validateSelection()
+    if (this.service.readiness !== 'READY') return
+    if (this.selectedIdentity !== '') this.validateSelection()
     if (this.selectedIdentity === '') this.selectFirstAgent()
   }
 
   private selectFirstAgent(): void {
-    if (this.service.readiness !== 'READY') return
     const first = this.agents[0]
-    if (first !== undefined) this.selectAgent(first.identity)
+    if (first !== undefined) this.applyAgent(first.identity)
   }
 
   private validateSelection(): void {
-    if (this.selectedIdentity === '') return
     const selected = this.selectedAgent
     if (selected === undefined) {
-      this.invalidate('The selected agent is no longer available.')
+      this.replaceUnavailableAgent()
       return
     }
     const catalog = this.service.catalogFor(
@@ -225,16 +227,47 @@ export class AgentSelectionModel {
       selected.version,
       selected.installationId,
     )
-    if (catalog?.catalogRevision !== this.selectedRevision) {
-      this.selectAgent(selected.identity)
+    if (
+      catalog !== undefined &&
+      catalog.catalogRevision !== this.selectedRevision
+    ) {
+      this.carryOverSelections(catalog)
     }
   }
 
-  private invalidate(message: string): void {
+  private replaceUnavailableAgent(): void {
+    const wasChosen = this.chosenByUser
+    const previous = this.selectedLabel
     this.selectedIdentity = ''
     this.selectedRevision = ''
     this.selections.clear()
-    this.invalidationMessage = message
+    this.chosenByUser = false
+    this.selectFirstAgent()
+    if (!wasChosen) return
+    const next = this.selectedAgent
+    this.noticeMessage =
+      next === undefined
+        ? `${previous} is no longer available.`
+        : `${previous} is no longer available; switched to ${next.label}.`
+  }
+
+  private carryOverSelections(catalog: AgentConfigurationCatalog): void {
+    const dropped: string[] = []
+    for (const [id, value] of [...this.selections]) {
+      const option = catalog.options.find((candidate) => candidate.id === id)
+      if (option === undefined || !isOfferedValue(option, value)) {
+        this.selections.delete(id)
+        dropped.push(option?.name ?? id)
+      }
+    }
+    this.selectedRevision = catalog.catalogRevision
+    this.optionIndex = Math.min(
+      this.optionIndex,
+      Math.max(0, catalog.options.length - 1),
+    )
+    this.noticeMessage = dropped.length
+      ? `Agent configuration changed; ${dropped.join(', ')} reset to default.`
+      : this.noticeMessage
   }
 }
 
@@ -263,23 +296,28 @@ function assertOptionValue(
   }
 }
 
-function assertSelections(
-  options: readonly AgentConfigurationOption[],
-  selections: ReadonlyMap<string, string | boolean>,
-): void {
-  for (const [id, value] of selections) {
-    const option = options.find((candidate) => candidate.id === id)
-    if (option === undefined) {
-      throw new AgentSelectionError(
-        'The selected agent configuration changed. Select it again.',
-      )
-    }
-    try {
-      assertOptionValue(option, value)
-    } catch {
-      throw new AgentSelectionError(
-        'The selected agent configuration changed. Select it again.',
-      )
-    }
+function isOfferedValue(
+  option: AgentConfigurationOption,
+  value: string | boolean,
+): boolean {
+  try {
+    assertOptionValue(option, value)
+    return true
+  } catch {
+    return false
   }
+}
+
+function disambiguateLabels(
+  agents: readonly SelectableAgent[],
+): readonly SelectableAgent[] {
+  return agents.map((agent) => {
+    const same = agents.filter((other) => other.label === agent.label)
+    if (same.length === 1) return agent
+    const versionsDiffer = new Set(same.map((other) => other.version)).size > 1
+    const suffix = versionsDiffer
+      ? agent.version
+      : agent.installationId.slice(-SUFFIX_LENGTH)
+    return { ...agent, label: `${agent.label} (${suffix})` }
+  })
 }
