@@ -253,7 +253,7 @@ export class AgentSelectionModel {
 
   private carryOverSelections(catalog: AgentConfigurationCatalog): void {
     const dropped: string[] = []
-    for (const [id, value] of [...this.selections]) {
+    for (const [id, value] of this.selections) {
       const option = catalog.options.find((candidate) => candidate.id === id)
       if (option === undefined || !isOfferedValue(option, value)) {
         this.selections.delete(id)
